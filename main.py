@@ -18,6 +18,8 @@
 import argparse
 
 from tokenizer import Tokenizer
+from parser import Parser
+from ast import AstDumper
 
 def main():
     parser = argparse.ArgumentParser()
@@ -27,7 +29,8 @@ def main():
 
     with open(args.file, 'r', encoding='utf-8') as file:
         tokens = Tokenizer(file).tokenize()
-    print(tokens)
+
+    ast = Parser().parse(tokens)
 
 if __name__ == "__main__":
     main()

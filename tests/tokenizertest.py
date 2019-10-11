@@ -24,7 +24,7 @@ from tokenizer import Tokenizer, Token, TokenType
 @ddt
 class TestTokenizer(unittest.TestCase):
 
-    @data(("return 10", [Token(TokenType.Literal, text="return", line=1, pos=1),
+    @data(("return 10", [Token(TokenType.Identifier, text="return", line=1, pos=1),
                          Token(TokenType.Literal, text="10", line=1, pos=8)]),
           ("10", [Token(TokenType.Literal, text="10", line=1, pos=1)]))
     @unpack

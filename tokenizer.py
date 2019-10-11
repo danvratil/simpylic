@@ -63,7 +63,7 @@ class Tokenizer:
     def tokenize(self):
         self.line = 1
         self.pos = 1
-        last_token = TokenType.Literal
+        last_token = TokenType.Unknown
         token_text = ""
         tokens = []
         while True:
