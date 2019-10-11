@@ -16,21 +16,37 @@
 """
 
 import argparse
+from sys import stdout
 
 from tokenizer import Tokenizer
 from parser import Parser
 from ast import AstDumper
+from compiler import AsmGenerator
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('file', metavar='FILE', type=str, help='File to process')
+    parser.add_argument('file', metavar='FILE', type=str, help='File to process.')
+    parser.add_argument('-o', dest='output', metavar='OUTFILE', type=str, help='File to write assembly into.')
+    group = parser.add_mutually_exclusive_group(required = True)
+    group.add_argument('-c', dest='compile', action='store_true',
+                       help='Compile the code into assembly.')
+    group.add_argument('-i', dest='interpret', action='store_true',
+                       help='Interpret the program.')
 
     args = parser.parse_args()
+
+    if args.interpret:
+        raise RuntimeError("Intepreter mode not yet implemented.")
 
     with open(args.file, 'r', encoding='utf-8') as file:
         tokens = Tokenizer(file).tokenize()
 
     ast = Parser().parse(tokens)
+
+    if args.compile:
+        is_stdout = not args.output or args.output == '-'
+        with stdout if is_stdout else open(args.output, 'w', enconding='utf-8') as outfile:
+            AsmGenerator(outfile).generate(ast)
 
 if __name__ == "__main__":
     main()

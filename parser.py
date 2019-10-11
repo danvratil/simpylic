@@ -27,7 +27,7 @@ class Parser:
 
     def parse(self, tokens):
         root = ast.ProgramNode()
-        main = ast.FunctionNode("___main___")
+        main = ast.FunctionNode("main")
         root.add_node(main)
 
         self.process_tokens_for_node(main, iter(tokens))
