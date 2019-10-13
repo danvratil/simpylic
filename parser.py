@@ -40,7 +40,7 @@ class Parser:
             if not token:
                 break
 
-            if token.type == TokenType.Identifier or token.type == TokenType.Literal:
+            if token.type in [TokenType.Identifier, TokenType.Literal, TokenType.Operator]:
                 node = self.node_for_token(token)
                 parent_node.add_node(node)
                 self.process_tokens_for_node(node, tokens)
@@ -48,6 +48,8 @@ class Parser:
     def node_for_token(self, token):
         if token.type == TokenType.Literal:
             return ast.ConstantNode(type="int", value=int(token.text))
+        elif token.type == TokenType.Operator:
+            return ast.UnaryOperatorNode(type=ast.UnaryOperatorNode.Type.fromText(token.text))
         else:
             if token.text == "return":
                 return ast.ReturnStmtNode()

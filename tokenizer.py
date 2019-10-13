@@ -23,6 +23,7 @@ class TokenType(Enum):
     NewLine = 2
     Literal = 3
     Identifier = 4
+    Operator = 5
 
 class Symbol(Enum):
     Unknown = 0
@@ -30,6 +31,7 @@ class Symbol(Enum):
     Digit = 2
     Whitespace = 3
     NewLine = 4
+    Operator = 5
 
 class Token:
     def __init__(self, type, line, pos, text):
@@ -74,7 +76,7 @@ class Tokenizer:
             symbol = self.get_symbol(c)
             token = self.token_for_symbol(symbol, last_token)
             if token != last_token:
-                if last_token == TokenType.Literal or last_token == TokenType.Identifier:
+                if last_token in [TokenType.Literal, TokenType.Identifier, TokenType.Operator]:
                     tokens.append(Token(type=last_token, line=self.line, pos=self.pos - len(token_text), text=token_text))
                 elif token == TokenType.NewLine:
                     tokens.append(Token(type=token, line=self.line, pos=self.pos, text='\n'))
@@ -85,12 +87,12 @@ class Tokenizer:
                 last_token = token
 
             if token == last_token:
-                if token == TokenType.Literal or token == TokenType.Identifier:
+                if token in [TokenType.Literal, TokenType.Identifier, TokenType.Operator]:
                     token_text += c
 
             self.pos += 1
 
-        if last_token == TokenType.Literal or token == TokenType.Identifier:
+        if last_token in [TokenType.Literal, TokenType.Identifier, TokenType.Operator]:
             tokens.append(Token(type=last_token, line=self.line, pos=self.pos - len(token_text), text=token_text))
 
         return tokens
@@ -105,6 +107,8 @@ class Tokenizer:
             return Symbol.Letter
         elif c >= '0' and c <= '9':
             return Symbol.Digit
+        elif c == '-' or c == '!' or c == '~':
+            return Symbol.Operator
 
         raise TokenizerError(f"Unknown symbol {c}", self.line, self.pos)
 
@@ -113,6 +117,8 @@ class Tokenizer:
             return TokenType.Whitespace
         elif symbol == Symbol.NewLine:
             return TokenType.NewLine
+        elif symbol == Symbol.Operator:
+            return TokenType.Operator
         elif symbol == Symbol.Letter or symbol == Symbol.Digit:
             if token == TokenType.Identifier or token == TokenType.Literal:
                 return token

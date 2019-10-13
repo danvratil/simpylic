@@ -17,6 +17,9 @@
 
 import ast
 
+class AsmGeneratorError(Exception):
+    pass
+
 class AsmEmitter:
     class FunctionEmitter:
         def __init__(self, emitter, name):
@@ -93,3 +96,12 @@ class AsmGenerator:
     def emit_expression_stmt(self, stmt_node):
         if isinstance(stmt_node, ast.ConstantNode):
             self.emitter.instruction("movl", f"${stmt_node.value}", "%eax");
+        elif isinstance(stmt_node, ast.UnaryOperatorNode):
+            # First prepare the content
+            if len(stmt_node.nodes()) != 1:
+                return AsmGeneratorError("Missing argument to an unary operator.")
+            self.emit_expression_stmt(stmt_node.nodes()[0])
+            self.emitter.instruction("neg", "%eax")
+
+        else:
+            raise AsmGeneratorError("Invalid expression in return statement")

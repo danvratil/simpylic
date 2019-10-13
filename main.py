@@ -42,10 +42,11 @@ def main():
         tokens = Tokenizer(file).tokenize()
 
     ast = Parser().parse(tokens)
+    #AstDumper.dump(ast)
 
     if args.compile:
         is_stdout = not args.output or args.output == '-'
-        with stdout if is_stdout else open(args.output, 'w', enconding='utf-8') as outfile:
+        with stdout if is_stdout else open(args.output, 'w', encoding='utf-8') as outfile:
             AsmGenerator(outfile).generate(ast)
 
 if __name__ == "__main__":

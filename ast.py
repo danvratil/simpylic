@@ -15,6 +15,11 @@
  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from enum import Enum
+
+def AstError(RuntimeError):
+    pass
+
 class AstNode:
     pass
 
@@ -55,7 +60,29 @@ class ConstantNode(LeafNode):
     def __repr__(self):
         return f"ConstantNode(type={self.type}, value={self.value})"
 
+class UnaryOperatorNode(NonleafNode):
+    class Type(Enum):
+        Negation = 1,
+        BitwiseComplement = 2
+        LogicalNegation = 3
 
+        @staticmethod
+        def fromText(text):
+            if text == "-":
+                return UnaryOperatorNode.Type.Negation
+            elif text == '~':
+                return UnaryOperatorNode.Type.BitwiseComplement
+            elif text == "!":
+                return UnaryOperatorNode.Type.LogicalNegation
+            else:
+                raise AstError(f"Unkown unary operator '{text}'")
+
+    def __init__(self, type):
+        super().__init__()
+        self.type = type
+
+    def __repr__(self):
+        return f"UnaryOperatorNode(type={self.type})"
 
 class AstDumper:
     @staticmethod
