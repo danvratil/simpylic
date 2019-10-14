@@ -18,10 +18,7 @@
 import argparse
 from sys import stdout
 
-from tokenizer import Tokenizer
-from parser import Parser
-from ast import AstDumper
-from compiler import AsmGenerator
+import simpylic
 
 def main():
     parser = argparse.ArgumentParser()
@@ -35,19 +32,11 @@ def main():
 
     args = parser.parse_args()
 
-    if args.interpret:
-        raise RuntimeError("Intepreter mode not yet implemented.")
-
-    with open(args.file, 'r', encoding='utf-8') as file:
-        tokens = Tokenizer(file).tokenize()
-
-    ast = Parser().parse(tokens)
-    #AstDumper.dump(ast)
-
-    if args.compile:
+    with open(args.file, 'r', encoding='utf-8') as srcfile:
         is_stdout = not args.output or args.output == '-'
         with stdout if is_stdout else open(args.output, 'w', encoding='utf-8') as outfile:
-            AsmGenerator(outfile).generate(ast)
+            operation = simpylic.Operation.Compile if args.compile else simpylic.Operation.Interpret
+            simpylic.run(srcfile, outfile, operation)
 
 if __name__ == "__main__":
     main()
