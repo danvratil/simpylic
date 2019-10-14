@@ -1,0 +1,22 @@
+[
+    {
+        "test": "return-10",
+        "return-code": 10
+    },
+    {
+        "test": "return-bitwise-complement",
+        "return-code": -6
+    },
+    {
+        "test": "return-combined-unary-operator",
+        "return-code": -15
+    },
+    {
+        "test": "return-logical-negation",
+        "return-code": 0
+    },
+    {
+        "test": "return-minus-12",
+        "return-code": -12
+    }
+]
