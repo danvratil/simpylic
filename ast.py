@@ -17,7 +17,7 @@
 
 from enum import Enum
 
-def AstError(RuntimeError):
+class AstError(RuntimeError):
     pass
 
 class AstNode:

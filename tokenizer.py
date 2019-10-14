@@ -76,7 +76,7 @@ class Tokenizer:
             symbol = self.get_symbol(c)
             token = self.token_for_symbol(symbol, last_token)
             if token != last_token:
-                if last_token in [TokenType.Literal, TokenType.Identifier, TokenType.Operator]:
+                if last_token in [TokenType.Literal, TokenType.Identifier]:
                     tokens.append(Token(type=last_token, line=self.line, pos=self.pos - len(token_text), text=token_text))
                 elif token == TokenType.NewLine:
                     tokens.append(Token(type=token, line=self.line, pos=self.pos, text='\n'))
@@ -86,13 +86,14 @@ class Tokenizer:
                 token_text = ""
                 last_token = token
 
-            if token == last_token:
-                if token in [TokenType.Literal, TokenType.Identifier, TokenType.Operator]:
-                    token_text += c
+            if token == TokenType.Operator:
+                tokens.append(Token(type=last_token, line=self.line, pos=self.pos - 1, text=c))
+            elif token in [TokenType.Literal, TokenType.Identifier]:
+                token_text += c
 
             self.pos += 1
 
-        if last_token in [TokenType.Literal, TokenType.Identifier, TokenType.Operator]:
+        if last_token in [TokenType.Literal, TokenType.Identifier]:
             tokens.append(Token(type=last_token, line=self.line, pos=self.pos - len(token_text), text=token_text))
 
         return tokens

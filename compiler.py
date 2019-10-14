@@ -101,7 +101,14 @@ class AsmGenerator:
             if len(stmt_node.nodes()) != 1:
                 return AsmGeneratorError("Missing argument to an unary operator.")
             self.emit_expression_stmt(stmt_node.nodes()[0])
-            self.emitter.instruction("neg", "%eax")
+            if stmt_node.type == ast.UnaryOperatorNode.Type.Negation:
+                self.emitter.instruction("neg", "%eax")
+            elif stmt_node.type == ast.UnaryOperatorNode.Type.LogicalNegation:
+                self.emitter.instruction("cmpl", "$0", "%eax");
+                self.emitter.instruction("sete", "%al");
+                self.emitter.instruction("movzbl", "%al", "%eax");
+            elif stmt_node.type == ast.UnaryOperatorNode.Type.BitwiseComplement:
+                self.emitter.instruction("not", "%eax")
 
         else:
             raise AsmGeneratorError("Invalid expression in return statement")
