@@ -34,7 +34,7 @@ class Symbol(Enum):
     Operator = 5
 
 class Token:
-    def __init__(self, type, line, pos, text):
+    def __init__(self, text, type, line, pos):
         self.type = type
         self.line = line
         self.pos = pos
@@ -62,44 +62,7 @@ class Tokenizer:
     def __init__(self, source):
         self.source = source
 
-    def tokenize(self):
-        self.line = 1
-        self.pos = 1
-        last_token = TokenType.Unknown
-        token_text = ""
-        tokens = []
-        while True:
-            c = self.source.read(1)
-            if not c:
-                break
-
-            symbol = self.get_symbol(c)
-            token = self.token_for_symbol(symbol, last_token)
-            if token != last_token:
-                if last_token in [TokenType.Literal, TokenType.Identifier]:
-                    tokens.append(Token(type=last_token, line=self.line, pos=self.pos - len(token_text), text=token_text))
-                elif token == TokenType.NewLine:
-                    tokens.append(Token(type=token, line=self.line, pos=self.pos, text='\n'))
-                    self.line += 1
-                    self.pos = 1
-
-                token_text = ""
-                last_token = token
-
-            if token == TokenType.Operator:
-                tokens.append(Token(type=last_token, line=self.line, pos=self.pos - 1, text=c))
-            elif token in [TokenType.Literal, TokenType.Identifier]:
-                token_text += c
-
-            self.pos += 1
-
-        if last_token in [TokenType.Literal, TokenType.Identifier]:
-            tokens.append(Token(type=last_token, line=self.line, pos=self.pos - len(token_text), text=token_text))
-
-        return tokens
-
-
-    def get_symbol(self, c):
+    def __get_symbol_type(self, c):
         if c == ' ' or c == '\t' or c == '\r':
             return Symbol.Whitespace
         elif c == '\n':
@@ -111,21 +74,100 @@ class Tokenizer:
         elif c == '-' or c == '!' or c == '~':
             return Symbol.Operator
 
-        raise TokenizerError(f"Unknown symbol {c}", self.line, self.pos)
+        raise TokenizerError(f'Unknown symbol {c}', self.__line, self.__pos)
 
-    def token_for_symbol(self, symbol, token):
-        if symbol == Symbol.Whitespace:
-            return TokenType.Whitespace
+    def __token_for_symbol(self, symbol, last_token):
+        if symbol == Symbol.Operator:
+            return TokenType.Operator
         elif symbol == Symbol.NewLine:
             return TokenType.NewLine
-        elif symbol == Symbol.Operator:
-            return TokenType.Operator
-        elif symbol == Symbol.Letter or symbol == Symbol.Digit:
-            if token == TokenType.Identifier or token == TokenType.Literal:
-                return token
-            elif symbol == Symbol.Digit:
-                return TokenType.Literal
-            elif symbol == Symbol.Letter:
+        elif symbol == Symbol.Whitespace:
+            return TokenType.Whitespace
+        elif symbol == Symbol.Letter:
+            return TokenType.Identifier
+        elif symbol == Symbol.Digit:
+            if last_token == TokenType.Identifier:
                 return TokenType.Identifier
+            else:
+                return TokenType.Literal
 
-        raise TokenizeError(f"Unknown symbol {symbol}", self.line, self.pos)
+        assert(False)
+
+    def __token_pos(self):
+        return {'line': self.__line,
+                'pos': self.__pos - len(self.__token_text)}
+
+    def __terminate_token(self, token):
+        if token == TokenType.Unknown:
+            pass
+        elif token == TokenType.NewLine:
+            self.__newline_token()
+        elif token == TokenType.Operator:
+            self.__operator_token()
+        elif token == TokenType.Identifier:
+            self.__identifier_token()
+        elif token == TokenType.Literal:
+            self.__literal_token()
+        elif token == TokenType.Whitespace:
+            self.__whitespace_token()
+        else:
+            raise TokenizerError(f'Invalid expression: expected whitespace, identifier or literal, got \'{token}\'', self.__line, self.__pos)
+
+    def __newline_token(self):
+        self.__tokens.append(Token(None, type=TokenType.NewLine, line=self.__line, pos=self.__pos - 1))
+        self.__line += 1
+        self.__pos = -1
+        self.__token_text = ''
+
+    def __text_token(self, token):
+        self.__tokens.append(Token(self.__token_text, type=token, **self.__token_pos()))
+        self.__token_text = ''
+
+    def __operator_token(self):
+        self.__text_token(TokenType.Operator);
+
+    def __identifier_token(self):
+        self.__text_token(TokenType.Identifier)
+
+    def __literal_token(self):
+        self.__text_token(TokenType.Literal)
+
+    def __whitespace_token(self):
+        self.__text_token(TokenType.Whitespace)
+
+    def tokenize(self):
+        self.__line = 1
+        self.__pos = 1
+        self.__token_text = ''
+        self.__tokens = []
+
+        last_token = TokenType.Unknown
+        while True:
+            c = self.source.read(1)
+            if not c:
+                break
+
+            symbol = self.__get_symbol_type(c)
+            token_type = self.__token_for_symbol(symbol, last_token)
+
+            if token_type == TokenType.NewLine:
+                self.__terminate_token(last_token)
+                last_token = TokenType.Unknown
+            elif token_type == TokenType.Operator:
+                # Operators are (so far) always single character
+                self.__terminate_token(last_token)
+                last_token = TokenType.Unknown
+            elif token_type != last_token:
+                if last_token != TokenType.Unknown:
+                    self.__terminate_token(last_token)
+
+            self.__token_text += c
+            self.__pos += 1
+            last_token = token_type
+
+        print(self.__tokens)
+        if last_token != TokenType.Unknown:
+            self.__terminate_token(last_token)
+
+        return self.__tokens
+
