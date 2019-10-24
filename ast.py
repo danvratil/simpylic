@@ -62,7 +62,7 @@ class ConstantNode(LeafNode):
 
 class UnaryOperatorNode(NonleafNode):
     class Type(Enum):
-        Negation = '-',
+        Negation = '-'
         BitwiseComplement = '~'
         LogicalNegation = '!'
 

@@ -64,7 +64,7 @@ class Parser:
             operator_node = ast.UnaryOperatorNode(token.text)
             node = self.__parse_expression(tokens)
             operator_node.add_node(node)
-            return base_node
+            return operator_node
         elif token.type == TokenType.Literal:
             if len(tokens) > 2 and tokens[0].type == TokenType.Operator:
                 operator_token = tokens.pop(0)
