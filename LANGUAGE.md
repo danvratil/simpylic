@@ -19,11 +19,13 @@ statement =
 (* This should represent all expressions currently supported by
    the simplylic parser. *)
 expression = number
-    | ( unary_operator, expression ) ;
+    | ( unary_operator, expression )
+    | ( number, binary_operator, expression ) ;
 
 
 return_statement = 'return', white_space, expression ;
 
 unary_operator = "!" | "~" | "-" ;
+binary_operator = "+" | "-" | "*" | "/" ;
 
 ```

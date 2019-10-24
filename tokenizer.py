@@ -71,7 +71,7 @@ class Tokenizer:
             return Symbol.Letter
         elif c >= '0' and c <= '9':
             return Symbol.Digit
-        elif c == '-' or c == '!' or c == '~':
+        elif c in '+-*/~!':
             return Symbol.Operator
 
         raise TokenizerError(f'Unknown symbol {c}', self.__line, self.__pos)
@@ -133,7 +133,9 @@ class Tokenizer:
         self.__text_token(TokenType.Literal)
 
     def __whitespace_token(self):
-        self.__text_token(TokenType.Whitespace)
+        # FIXME: Re-enable whitespace tokens once we start supporting indentation
+        #self.__text_token(TokenType.Whitespace)
+        self.__token_text = ''
 
     def tokenize(self):
         self.__line = 1
@@ -165,7 +167,6 @@ class Tokenizer:
             self.__pos += 1
             last_token = token_type
 
-        print(self.__tokens)
         if last_token != TokenType.Unknown:
             self.__terminate_token(last_token)
 

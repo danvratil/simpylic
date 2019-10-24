@@ -18,5 +18,21 @@
     {
         "test": "return-minus-12",
         "return-code": -12
+    },
+    {
+        "test": "return-addition",
+        "return-code": 3
+    },
+    {
+        "test": "return-subtraction",
+        "return-code": 9
+    },
+    {
+        "test": "return-multiplication",
+        "return-code": 30
+    },
+    {
+        "test": "return-division",
+        "return-code": 4
     }
 ]

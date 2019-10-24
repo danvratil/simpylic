@@ -62,27 +62,31 @@ class ConstantNode(LeafNode):
 
 class UnaryOperatorNode(NonleafNode):
     class Type(Enum):
-        Negation = 1,
-        BitwiseComplement = 2
-        LogicalNegation = 3
-
-        @staticmethod
-        def fromText(text):
-            if text == "-":
-                return UnaryOperatorNode.Type.Negation
-            elif text == '~':
-                return UnaryOperatorNode.Type.BitwiseComplement
-            elif text == "!":
-                return UnaryOperatorNode.Type.LogicalNegation
-            else:
-                raise AstError(f"Unkown unary operator '{text}'")
+        Negation = '-',
+        BitwiseComplement = '~'
+        LogicalNegation = '!'
 
     def __init__(self, type):
         super().__init__()
-        self.type = type
+        self.type = UnaryOperatorNode.Type(type)
 
     def __repr__(self):
         return f"UnaryOperatorNode(type={self.type})"
+
+class BinaryOperatorNode(NonleafNode):
+    class Type(Enum):
+        Addition = '+'
+        Subtraction = '-'
+        Multiplication = '*'
+        Division = '/'
+
+    def __init__(self, type):
+        super().__init__()
+        self.type = BinaryOperatorNode.Type(type)
+
+    def __repr__(self):
+        return f'BinaryOperatorNode(type={self.type})'
+
 
 class AstDumper:
     @staticmethod

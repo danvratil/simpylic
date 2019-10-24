@@ -29,7 +29,10 @@ class TestTokenizer(unittest.TestCase):
           ("10", [Token(TokenType.Literal, text="10", line=1, pos=1)]),
           ("return -12", [Token(TokenType.Identifier, text="return", line=1, pos=1),
                           Token(TokenType.Operator, text="-", line=1, pos=8),
-                          Token(TokenType.Literal, text="12", line=1, pos=9)]))
+                          Token(TokenType.Literal, text="12", line=1, pos=9)]),
+          ("1 + 2", [Token(TokenType.Literal, text="1", line=1, pos=1),
+                     Token(TokenType.Operator, text="+", line=1, pos=3),
+                     Token(TokenType.Literal, text="2" line=1, pos=5)]))
     @unpack
     def test_basic_tokenizer(self, code, tokens):
         buffer = StringIO()

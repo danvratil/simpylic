@@ -55,11 +55,16 @@ class AsmEmitter:
     def instruction(self, instruction, *args):
         self._write(f"{instruction} {', '.join([str(s) for s in args])}")
 
+    def push_stack(self, reg):
+        self.instruction("push", reg)
+
+    def pop_stack(self, reg):
+        self.instruction("pop", reg)
+
     def _write(self, data):
         self._output.write(" " * self._depth * self._step)
         self._output.write(data)
         self._output.write("\n")
-
 
 
 class AsmGenerator:
@@ -109,6 +114,28 @@ class AsmGenerator:
                 self.emitter.instruction("movzbl", "%al", "%eax");
             elif stmt_node.type == ast.UnaryOperatorNode.Type.BitwiseComplement:
                 self.emitter.instruction("not", "%eax")
-
+        elif isinstance(stmt_node, ast.BinaryOperatorNode):
+            # First prepare the content
+            if len(stmt_node.nodes()) != 2:
+                return AsmGeneratorError("Missing one or more arguments to binary operator.")
+            if stmt_node.type == ast.BinaryOperatorNode.Type.Addition or stmt_node.type == ast.BinaryOperatorNode.Type.Multiplication:
+                self.emit_expression_stmt(stmt_node.nodes()[0])
+                self.emitter.push_stack("%rax")
+                self.emit_expression_stmt(stmt_node.nodes()[1])
+                self.emitter.pop_stack("%rcx")
+                if stmt_node.type == ast.BinaryOperatorNode.Type.Addition:
+                    self.emitter.instruction("addl", "%ecx", "%eax")
+                elif stmt_node.type == ast.BinaryOperatorNode.Type.Multiplication:
+                    self.emitter.instruction("imul", "%ecx", "%eax")
+            else:
+                self.emit_expression_stmt(stmt_node.nodes()[1])
+                self.emitter.push_stack("%rax")
+                self.emit_expression_stmt(stmt_node.nodes()[0])
+                self.emitter.pop_stack("%rcx")
+                if stmt_node.type == ast.BinaryOperatorNode.Type.Subtraction:
+                    self.emitter.instruction("subl", "%ecx", "%eax")
+                elif stmt_node.type == ast.BinaryOperatorNode.Type.Division:
+                    self.emitter.instruction("cdq") # Sign-extend eax to edx:eax (idiv requires signed value)
+                    self.emitter.instruction("idivl", "%ecx")
         else:
-            raise AsmGeneratorError("Invalid expression in return statement")
+            raise AsmGeneratorError(f"Invalid expression {stmt_node} in return statement")

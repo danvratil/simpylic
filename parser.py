@@ -30,28 +30,50 @@ class Parser:
         main = ast.FunctionNode("main")
         root.add_node(main)
 
-        self.process_tokens_for_node(main, iter(tokens))
+        while tokens:
+            node = self.__parse_statement(tokens)
+            if node:
+                main.add_node(node)
 
         return root
 
-    def process_tokens_for_node(self, parent_node, tokens):
-        while True:
-            token = next(tokens, None)
-            if not token:
-                break
-
-            if token.type in [TokenType.Identifier, TokenType.Literal, TokenType.Operator]:
-                node = self.node_for_token(token)
-                parent_node.add_node(node)
-                self.process_tokens_for_node(node, tokens)
-
-    def node_for_token(self, token):
-        if token.type == TokenType.Literal:
-            return ast.ConstantNode(type="int", value=int(token.text))
-        elif token.type == TokenType.Operator:
-            return ast.UnaryOperatorNode(type=ast.UnaryOperatorNode.Type.fromText(token.text))
+    def __parse_statement(self, tokens):
+        peek_token = tokens[0]
+        if peek_token.type == TokenType.Identifier and peek_token.text == 'return':
+            return self.__parse_return_stmt(tokens)
+        elif peek_token.type == TokenType.NewLine:
+            tokens.pop(0)
+            return None
         else:
-            if token.text == "return":
-                return ast.ReturnStmtNode()
+            raise ParserError(f'Unexpected statement identifier {tokens[0]}')
 
-        raise ParserError(f"Unknown token {token}")
+    def __parse_return_stmt(self, tokens):
+        token = tokens.pop(0)
+        assert(token.type == TokenType.Identifier and token.text == 'return')
+
+        stmt_node = ast.ReturnStmtNode()
+        expr_node = self.__parse_expression(tokens)
+        stmt_node.add_node(expr_node)
+
+        return stmt_node
+
+    def __parse_expression(self, tokens):
+        # Must be a literal or an unary operator
+        token = tokens.pop(0)
+        if token.type == TokenType.Operator:
+            operator_node = ast.UnaryOperatorNode(token.text)
+            node = self.__parse_expression(tokens)
+            operator_node.add_node(node)
+            return base_node
+        elif token.type == TokenType.Literal:
+            if len(tokens) > 2 and tokens[0].type == TokenType.Operator:
+                operator_token = tokens.pop(0)
+                operator_node = ast.BinaryOperatorNode(operator_token.text)
+                operator_node.add_node(ast.ConstantNode(type='int', value=int(token.text)))
+                operator_node.add_node(self.__parse_expression(tokens))
+                return operator_node
+            else:
+                return ast.ConstantNode(type='int', value=int(token.text))
+        else:
+            raise ParseError(f'Invalid token {token}')
+
