@@ -24,6 +24,7 @@ class TokenType(Enum):
     Literal = 3
     Identifier = 4
     Operator = 5
+    Parenthesis = 6
 
 class Symbol(Enum):
     Unknown = 0
@@ -32,6 +33,7 @@ class Symbol(Enum):
     Whitespace = 3
     NewLine = 4
     Operator = 5
+    Parenthesis = 6
 
 class Token:
     def __init__(self, text, type, line, pos):
@@ -73,6 +75,8 @@ class Tokenizer:
             return Symbol.Digit
         elif c in '+-*/~!':
             return Symbol.Operator
+        elif c in '()':
+            return Symbol.Parenthesis
 
         raise TokenizerError(f'Unknown symbol {c}', self.__line, self.__pos)
 
@@ -85,6 +89,8 @@ class Tokenizer:
             return TokenType.Whitespace
         elif symbol == Symbol.Letter:
             return TokenType.Identifier
+        elif symbol == Symbol.Parenthesis:
+            return TokenType.Parenthesis
         elif symbol == Symbol.Digit:
             if last_token == TokenType.Identifier:
                 return TokenType.Identifier
@@ -110,6 +116,8 @@ class Tokenizer:
             self.__literal_token()
         elif token == TokenType.Whitespace:
             self.__whitespace_token()
+        elif token == TokenType.Parenthesis:
+            self.__parenthesis_token()
         else:
             raise TokenizerError(f'Invalid expression: expected whitespace, identifier or literal, got \'{token}\'', self.__line, self.__pos)
 
@@ -137,6 +145,9 @@ class Tokenizer:
         #self.__text_token(TokenType.Whitespace)
         self.__token_text = ''
 
+    def __parenthesis_token(self):
+        self.__text_token(TokenType.Parenthesis)
+
     def tokenize(self):
         self.__line = 1
         self.__pos = 1
@@ -155,7 +166,7 @@ class Tokenizer:
             if token_type == TokenType.NewLine:
                 self.__terminate_token(last_token)
                 last_token = TokenType.Unknown
-            elif token_type == TokenType.Operator:
+            elif token_type == TokenType.Operator or token_type == TokenType.Parenthesis:
                 # Operators are (so far) always single character
                 self.__terminate_token(last_token)
                 last_token = TokenType.Unknown

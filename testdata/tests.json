@@ -34,5 +34,17 @@
     {
         "test": "return-division",
         "return-code": 4
+    },
+    {
+        "test": "return-parenthesis-1",
+        "return-code": 15
+    },
+    {
+        "test": "return-parenthesis-2",
+        "return-code": 8
+    },
+    {
+        "test": "return-parenthesis-nested",
+        "return-code": 2
     }
 ]

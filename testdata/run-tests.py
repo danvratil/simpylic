@@ -12,8 +12,9 @@ def main():
 
     for test in tests:
         testfile = f'testdata/{test["test"]}.spy'
-        print(f'Compiling {testfile}...', end='')
+        print(f'Testing {testfile}...', end='')
 
+        print('compiling...', end='')
         buffer = StringIO()
         with open(testfile, encoding='utf-8') as src:
             Simpylic.run(src, buffer, Simpylic.Operation.Compile)

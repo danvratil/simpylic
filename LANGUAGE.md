@@ -20,7 +20,8 @@ statement =
    the simplylic parser. *)
 expression = number
     | ( unary_operator, expression )
-    | ( number, binary_operator, expression ) ;
+    | ( number, binary_operator, expression )
+    | "(", expression, ")" ;
 
 
 return_statement = 'return', white_space, expression ;

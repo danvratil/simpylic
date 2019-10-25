@@ -52,28 +52,39 @@ class Parser:
         assert(token.type == TokenType.Identifier and token.text == 'return')
 
         stmt_node = ast.ReturnStmtNode()
-        expr_node = self.__parse_expression(tokens)
-        stmt_node.add_node(expr_node)
+
+        expression_stack = []
+        self.__parse_expression(tokens, expression_stack)
+        assert(len(expression_stack) == 1)
+        stmt_node.add_node(expression_stack[0])
 
         return stmt_node
 
-    def __parse_expression(self, tokens):
+    def __parse_expression(self, tokens, expression_stack):
         # Must be a literal or an unary operator
         token = tokens.pop(0)
-        if token.type == TokenType.Operator:
-            operator_node = ast.UnaryOperatorNode(token.text)
-            node = self.__parse_expression(tokens)
-            operator_node.add_node(node)
-            return operator_node
-        elif token.type == TokenType.Literal:
-            if len(tokens) > 2 and tokens[0].type == TokenType.Operator:
-                operator_token = tokens.pop(0)
-                operator_node = ast.BinaryOperatorNode(operator_token.text)
-                operator_node.add_node(ast.ConstantNode(type='int', value=int(token.text)))
-                operator_node.add_node(self.__parse_expression(tokens))
-                return operator_node
-            else:
-                return ast.ConstantNode(type='int', value=int(token.text))
+        if token.type == TokenType.Parenthesis:
+            assert(token.text =='(')
+            self.__parse_expression(tokens, expression_stack)
+            token = tokens.pop(0)
+            assert(token.type == TokenType.Parenthesis and token.text ==')')
+
+        if not expression_stack and token.type == TokenType.Operator:
+            node = ast.UnaryOperatorNode(token.text)
+            self.__parse_expression(tokens, expression_stack)
+            node.add_node(expression_stack.pop())
+            expression_stack.append(node)
         else:
-            raise ParseError(f'Invalid token {token}')
+            if not expression_stack:
+                expression_stack.append(ast.ConstantNode(type='int', value=int(token.text)))
+            if len(tokens) > 2 and tokens[0].type == TokenType.Operator:
+                rhs = expression_stack.pop()
+                operator_token = tokens.pop(0)
+                self.__parse_expression(tokens, expression_stack)
+                lhs = expression_stack.pop()
+
+                node = ast.BinaryOperatorNode(operator_token.text)
+                node.add_node(rhs)
+                node.add_node(lhs)
+                expression_stack.append(node)
 
