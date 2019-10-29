@@ -39,7 +39,7 @@ class Parser:
 
     def __parse_statement(self, tokens):
         peek_token = tokens[0]
-        if peek_token.type == TokenType.Identifier and peek_token.text == 'return':
+        if peek_token.type == TokenType.KeywordReturn:
             return self.__parse_return_stmt(tokens)
         elif peek_token.type == TokenType.NewLine:
             tokens.pop(0)
@@ -49,7 +49,7 @@ class Parser:
 
     def __parse_return_stmt(self, tokens):
         token = tokens.pop(0)
-        assert(token.type == TokenType.Identifier and token.text == 'return')
+        assert(token.type == TokenType.KeywordReturn)
 
         stmt_node = ast.ReturnStmtNode()
 
@@ -63,13 +63,12 @@ class Parser:
     def __parse_expression(self, tokens, expression_stack):
         # Must be a literal or an unary operator
         token = tokens.pop(0)
-        if token.type == TokenType.Parenthesis:
-            assert(token.text =='(')
+        if token.type == TokenType.LeftParenthesis:
             self.__parse_expression(tokens, expression_stack)
             token = tokens.pop(0)
-            assert(token.type == TokenType.Parenthesis and token.text ==')')
+            assert(token.type == TokenType.RightParenthesis)
 
-        if not expression_stack and token.type == TokenType.Operator:
+        if not expression_stack and token.type.is_operator():
             node = ast.UnaryOperatorNode(token.text)
             self.__parse_expression(tokens, expression_stack)
             node.add_node(expression_stack.pop())
@@ -77,7 +76,7 @@ class Parser:
         else:
             if not expression_stack:
                 expression_stack.append(ast.ConstantNode(type='int', value=int(token.text)))
-            if len(tokens) > 2 and tokens[0].type == TokenType.Operator:
+            if len(tokens) > 1 and tokens[0].type.is_operator():
                 rhs = expression_stack.pop()
                 operator_token = tokens.pop(0)
                 self.__parse_expression(tokens, expression_stack)

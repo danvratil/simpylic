@@ -24,15 +24,22 @@ from tokenizer import Tokenizer, Token, TokenType
 @ddt
 class TestTokenizer(unittest.TestCase):
 
-    @data(("return 10", [Token(TokenType.Identifier, text="return", line=1, pos=1),
-                         Token(TokenType.Literal, text="10", line=1, pos=8)]),
-          ("10", [Token(TokenType.Literal, text="10", line=1, pos=1)]),
-          ("return -12", [Token(TokenType.Identifier, text="return", line=1, pos=1),
-                          Token(TokenType.Operator, text="-", line=1, pos=8),
-                          Token(TokenType.Literal, text="12", line=1, pos=9)]),
-          ("1 + 2", [Token(TokenType.Literal, text="1", line=1, pos=1),
-                     Token(TokenType.Operator, text="+", line=1, pos=3),
-                     Token(TokenType.Literal, text="2" line=1, pos=5)]))
+    @data(("return 10", [Token("return", TokenType.KeywordReturn, line=1, pos=1),
+                         Token("10", TokenType.Literal, line=1, pos=8)]),
+          ("10", [Token("10", TokenType.Literal, line=1, pos=1)]),
+          ("return -12", [Token("return", TokenType.KeywordReturn, line=1, pos=1),
+                          Token("-", TokenType.Minus, line=1, pos=8),
+                          Token("12", TokenType.Literal, line=1, pos=9)]),
+          ("1 + 2", [Token("1", TokenType.Literal, line=1, pos=1),
+                     Token("+", TokenType.Plus, line=1, pos=3),
+                     Token("2", TokenType.Literal, line=1, pos=5)]),
+          ("5 > 4 and 3 < 5", [Token("5", TokenType.Literal, line=1, pos=1),
+                               Token(">", TokenType.GreaterThan, line=1, pos=3),
+                               Token("4", TokenType.Literal, line=1, pos=5),
+                               Token("and", TokenType.KeywordAnd, line=1, pos=7),
+                               Token("3", TokenType.Literal, line=1, pos=11),
+                               Token("<", TokenType.LessThan, line=1, pos=13),
+                               Token("5", TokenType.Literal, line=1, pos=15)]))
     @unpack
     def test_basic_tokenizer(self, code, tokens):
         buffer = StringIO()
