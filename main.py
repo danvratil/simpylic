@@ -29,13 +29,21 @@ def main():
                        help='Compile the code into assembly.')
     group.add_argument('-i', dest='interpret', action='store_true',
                        help='Interpret the program.')
+    group.add_argument('-a', dest='dump_ast', action='store_true',
+                        help='Dump the AST and exit.')
 
     args = parser.parse_args()
 
     with open(args.file, 'r', encoding='utf-8') as srcfile:
         is_stdout = not args.output or args.output == '-'
         with stdout if is_stdout else open(args.output, 'w', encoding='utf-8') as outfile:
-            operation = simpylic.Operation.Compile if args.compile else simpylic.Operation.Interpret
+            if args.dump_ast:
+                operation = simpylic.Operation.DumpAst
+            elif args.compile:
+                operation = simpylic.Operation.Compile
+            else:
+                operation = simpylic.Operation.Interpret
+
             simpylic.run(srcfile, outfile, operation)
 
 if __name__ == "__main__":

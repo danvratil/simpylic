@@ -18,12 +18,13 @@
 from tokenizer import Tokenizer
 from parser import Parser
 from compiler import AsmGenerator
-
+from ast import AstDumper
 from enum import Enum
 
 class Operation(Enum):
-    Compile = 1,
+    Compile = 1
     Interpret = 2
+    DumpAst = 3
 
 def run(srcfile, outfile, operation):
     if operation == Operation.Interpret:
@@ -31,7 +32,8 @@ def run(srcfile, outfile, operation):
 
     tokens = Tokenizer(srcfile).tokenize()
     ast = Parser().parse(tokens)
-
-    if operation == Operation.Compile:
+    if operation == Operation.DumpAst:
+        AstDumper().dump(ast)
+    elif operation == Operation.Compile:
         AsmGenerator(outfile).generate(ast)
 
