@@ -55,14 +55,18 @@ class AsmEmitter:
     def instruction(self, instruction, *args):
         self._write(f"{instruction} {', '.join([str(s) for s in args])}")
 
+    def label(self, label):
+        self._write(f"{label}:", ident=False)
+
     def push_stack(self, reg):
         self.instruction("push", reg)
 
     def pop_stack(self, reg):
         self.instruction("pop", reg)
 
-    def _write(self, data):
-        self._output.write(" " * self._depth * self._step)
+    def _write(self, data, ident=True):
+        if ident:
+            self._output.write(" " * self._depth * self._step)
         self._output.write(data)
         self._output.write("\n")
 
@@ -70,6 +74,7 @@ class AsmEmitter:
 class AsmGenerator:
     def __init__(self, output):
         self.emitter = AsmEmitter(output)
+        self.__lastLabelId = 0
 
     def generate(self, ast):
         self.emit_program_asm(ast)
@@ -92,19 +97,22 @@ class AsmGenerator:
 
     def emit_return_stmt_asm(self, ret_node):
         # For return we first need to emit the expression, then the return itself
-        if len(ret_node.nodes()) != 1:
-            raise AsmGeneratorError("Invalid return node {ret_node}: expected one expression subnode")
+        assert(len(ret_node.nodes()) == 1)
 
         expr_node = ret_node.nodes()[0]
         self.emit_expression_stmt(expr_node);
+
+    def __generate_label(self, label):
+        label = f'{label}_{self.__lastLabelId}'
+        self.__lastLabelId += 1
+        return label
 
     def emit_expression_stmt(self, stmt_node):
         if isinstance(stmt_node, ast.ConstantNode):
             self.emitter.instruction("movl", f"${stmt_node.value}", "%eax");
         elif isinstance(stmt_node, ast.UnaryOperatorNode):
             # First prepare the content
-            if len(stmt_node.nodes()) != 1:
-                return AsmGeneratorError("Missing argument to an unary operator.")
+            assert(len(stmt_node.nodes()) == 1)
             self.emit_expression_stmt(stmt_node.nodes()[0])
             if stmt_node.type == ast.UnaryOperatorNode.Type.Negation:
                 self.emitter.instruction("neg", "%eax")
@@ -116,8 +124,7 @@ class AsmGenerator:
                 self.emitter.instruction("not", "%eax")
         elif isinstance(stmt_node, ast.BinaryOperatorNode):
             # First prepare the content
-            if len(stmt_node.nodes()) != 2:
-                return AsmGeneratorError("Missing one or more arguments to binary operator.")
+            assert(len(stmt_node.nodes()) == 2);
             if stmt_node.type == ast.BinaryOperatorNode.Type.Addition or stmt_node.type == ast.BinaryOperatorNode.Type.Multiplication:
                 self.emit_expression_stmt(stmt_node.nodes()[0])
                 self.emitter.push_stack("%rax")
@@ -137,5 +144,53 @@ class AsmGenerator:
                 elif stmt_node.type == ast.BinaryOperatorNode.Type.Division:
                     self.emitter.instruction("cdq") # Sign-extend eax to edx:eax (idiv requires signed value)
                     self.emitter.instruction("idivl", "%ecx")
+        elif isinstance(stmt_node, ast.LogicOperatorNode):
+            assert(len(stmt_node.nodes()) == 2)
+            if stmt_node.type == ast.LogicOperatorNode.Type.Or:
+                self.emit_expression_stmt(stmt_node.nodes()[0])
+                label = self.__generate_label("_clause")
+                self.emitter.instruction("cmpl", "$0", "%eax")
+                self.emitter.instruction("je", label)
+                self.emitter.instruction("movl", "$1", "%eax")
+                self.emitter.instruction("jmp", f"{label}_end")
+                self.emitter.label(label)
+                self.emit_expression_stmt(stmt_node.nodes()[1])
+                self.emitter.instruction("cmpl", "$0", "%eax")
+                self.emitter.instruction("movl", "$0", "%eax")
+                self.emitter.instruction("setne", "%al")
+                self.emitter.label(f"{label}_end")
+            elif stmt_node.type == ast.LogicOperatorNode.Type.And:
+                self.emit_expression_stmt(stmt_node.nodes()[0])
+                label = self.__generate_label("_clause")
+                self.emitter.instruction("cmpl", "$0", "%eax")
+                self.emitter.instruction("jne", label)
+                self.emitter.instruction("jmp", f"{label}_end")
+                self.emitter.label(label)
+                self.emit_expression_stmt(stmt_node.nodes()[1])
+                self.emitter.instruction("cmpl", "$0", "%eax")
+                self.emitter.instruction("movl", "$0", "%eax")
+                self.emitter.instruction("setne", "%al")
+                self.emitter.label(f"{label}_end")
+            else:
+                self.emit_expression_stmt(stmt_node.nodes()[0])
+                self.emitter.push_stack("%rax")
+                self.emit_expression_stmt(stmt_node.nodes()[1])
+                self.emitter.pop_stack("%rcx")
+                self.emitter.instruction("cmpl", "%eax", "%ecx")
+                self.emitter.instruction("movl", "$0", "%eax")   # zero-out eax, keep flags
+                if stmt_node.type == ast.LogicOperatorNode.Type.Equals:
+                    self.emitter.instruction("sete", "%al")
+                elif stmt_node.type == ast.LogicOperatorNode.Type.NotEquals:
+                    self.emitter.instruction("setne", "%al")
+                elif stmt_node.type == ast.LogicOperatorNode.Type.LessThanOrEqual:
+                    self.emitter.instruction("setle", "%al")
+                elif stmt_node.type == ast.LogicOperatorNode.Type.GreaterThanOrEqual:
+                    self.emitter.instruction("setge", "%al")
+                elif stmt_node.type == ast.LogicOperatorNode.Type.LessThan:
+                    self.emitter.instruction("setl", "%al")
+                elif stmt_node.type == ast.LogicOperatorNode.Type.GreaterThan:
+                    self.emitter.instruction("setg", "%al")
+                else:
+                    raise AsmGeneratorError(f"Invalid logic operator type {stmt_node.type}")
         else:
-            raise AsmGeneratorError(f"Invalid expression {stmt_node} in return statement")
+            raise AsmGeneratorError(f"Invalid expression {stmt_node} in statement")

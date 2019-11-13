@@ -85,8 +85,25 @@ class BinaryOperatorNode(NonleafNode):
         self.type = BinaryOperatorNode.Type(type)
 
     def __repr__(self):
-        return f'BinaryOperatorNode(type={self.type})'
+        return f"BinaryOperatorNode(type={self.type})"
 
+class LogicOperatorNode(NonleafNode):
+    class Type(Enum):
+        LessThan = '<'
+        LessThanOrEqual = '<='
+        Equals = '=='
+        NotEquals = '!='
+        GreaterThanOrEqual = '>='
+        GreaterThan = '>'
+        And = 'and'
+        Or = 'or'
+
+    def __init__(self, type):
+        super().__init__()
+        self.type = LogicOperatorNode.Type(type)
+
+    def __repr__(self):
+        return f"LogicOperatorNode(type={self.type})"
 
 class AstDumper:
     @staticmethod

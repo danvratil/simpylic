@@ -17,36 +17,60 @@
 
 import itertools
 
-from enum import Enum, unique
+from enum import Enum, auto
 
 class TokenType(Enum):
-    Unknown = 0
-    Whitespace = 1
-    NewLine = 2
-    Literal = 3
-    Identifier = 4
+    Unknown = auto()
+    Whitespace = auto()
+    NewLine = auto()
+    Literal = auto()
+    Identifier = auto()
 
-    __FirstOperator = 10
-    Plus = 10
-    Minus = 11
-    Star = 12
-    Slash = 13
-    LessThan = 14
-    Equals = 15
-    GreaterThan = 16
-    Negation = 17
-    Tilde = 18
-    __LastOperator = 90
+    Plus = auto()
+    Minus = auto()
+    Star = auto()
+    Slash = auto()
+    LessThan = auto()
+    LessThanOrEqual = auto()
+    Equals = auto()
+    NotEquals = auto()
+    GreaterThan = auto()
+    GreaterThanOrEqual = auto()
+    Negation = auto()
+    Tilde = auto()
 
-    LeftParenthesis = 91
-    RightParenthesis = 92
+    LeftParenthesis = auto()
+    RightParenthesis = auto()
 
-    KeywordReturn = 100
-    KeywordAnd = 101
-    KeywordOr = 102
+    KeywordReturn = auto()
+    KeywordAnd = auto()
+    KeywordOr = auto()
 
-    def is_operator(self):
-        return self.value >= TokenType.__FirstOperator.value and self.value <= TokenType.__LastOperator.value
+    __unary_operators = [Minus, Tilde, Negation]
+    __binary_operators = [Plus, Minus, Star, Slash]
+    __logic_operators = [LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual, Equals, NotEquals, KeywordAnd, KeywordOr]
+
+    def is_unary_operator(self):
+        return self.value in TokenType.__unary_operators.value
+
+    def is_binary_operator(self):
+        return self.value in TokenType.__binary_operators.value
+
+    def is_logic_operator(self):
+        return self.value in TokenType.__logic_operators.value
+
+    def priority(self):
+        if self.is_unary_operator():
+            return 100
+        elif self.is_logic_operator():
+            if self == TokenType.KeywordAnd or self == TokenType.KeywordOr:
+                return 90
+            else:
+                return 80
+        elif self.is_binary_operator():
+            return 80
+        else:
+            return 1
 
 class Token:
     def __init__(self, text, type, line, pos):
@@ -56,7 +80,7 @@ class Token:
         self.text = text
 
     def __repr__(self):
-        return f"Token(type={self.type}, text=\"{self.text}\", line={self.line}, pos={self.pos})"
+        return f"Token(type={self.type}, priority={self.type.priority()}, text=\"{self.text}\", line={self.line}, pos={self.pos})"
 
     def __eq__(self, other):
         return self.type == other.type \
@@ -65,28 +89,34 @@ class Token:
             and self.text == other.text
 
 class TokenizerError(Exception):
-    def __init__(self, what, line, char):
+    def __init__(self, what, line, pos):
         self.what = what
         self.line = line
-        self.char = char
+        self.pos = pos
 
     def __str__(self):
-        return f"{self.what} on line {self.line}:{self.char}"
+        return f"{self.what} on line {self.line}:{self.pos}"
 
 class Tokenizer:
 
-    __operators = { '+': TokenType.Plus,
-                    '-': TokenType.Minus,
-                    '*': TokenType.Star,
-                    '/': TokenType.Slash,
-                    '~': TokenType.Tilde,
-                    '!': TokenType.Negation,
-                    '<': TokenType.LessThan,
-                    '=': TokenType.Equals,
-                    '>': TokenType.GreaterThan,
-                    '(': TokenType.LeftParenthesis,
-                    ')': TokenType.RightParenthesis
-                  }
+    __operators = [ '+', '-', '*', '/', '~', '!', '<', '>', '(', ')', '=' ]
+
+    __single_operators = { '+': TokenType.Plus,
+                           '-': TokenType.Minus,
+                           '*': TokenType.Star,
+                           '/': TokenType.Slash,
+                           '~': TokenType.Tilde,
+                           '!': TokenType.Negation,
+                           '(': TokenType.LeftParenthesis,
+                           ')': TokenType.RightParenthesis
+                         }
+    __long_operators = { '==': TokenType.Equals,
+                         '!=': TokenType.NotEquals,
+                         '<' : TokenType.LessThan,
+                         '>=': TokenType.GreaterThanOrEqual,
+                         '<=': TokenType.LessThanOrEqual,
+                         '>' : TokenType.GreaterThan
+                       }
 
     __keywords = { 'return': TokenType.KeywordReturn,
                    'and': TokenType.KeywordAnd,
@@ -117,8 +147,22 @@ class Tokenizer:
                 self.__pos = 0
                 self.__line += 1
             elif c in Tokenizer.__operators:
-                self.__tokens.append(Token(text=c, type=Tokenizer.__operators[c], **self.__token_pos()))
-                self.__pos += 1
+                if c in Tokenizer.__single_operators:
+                    self.__tokens.append(Token(text=c, type=Tokenizer.__single_operators[c], **self.__token_pos()))
+                    self.__pos += 1
+                else:
+                    token_text = c
+                    while True:
+                        c = next(char_iter, None)
+                        if not c or c not in Tokenizer.__operators:
+                            break
+                        token_text += c
+                    if token_text in Tokenizer.__long_operators:
+                        self.__tokens.append(Token(text=token_text, type=Tokenizer.__long_operators[token_text], **self.__token_pos()))
+                        self.__pos += len(token_text)
+                    else:
+                        raise TokenizerError(f"Unknown operator '{token_text}'", self.__line, self.__pos)
+                    continue
             elif c.isalpha():
                 token_text = c
                 while True:

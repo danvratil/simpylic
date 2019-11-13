@@ -46,5 +46,21 @@
     {
         "test": "return-parenthesis-nested",
         "return-code": 2
+    },
+    {
+        "test": "return-logic-compare-1",
+        "return-code": 1
+    },
+    {
+        "test": "return-logic-compare-2",
+        "return-code": 0
+    },
+    {
+        "test": "return-logic-compare-3",
+        "return-code": 1
+    },
+    {
+        "test": "return-logic-compare-4",
+        "return-code": 1
     }
 ]

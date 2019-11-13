@@ -60,30 +60,48 @@ class Parser:
 
         return stmt_node
 
-    def __parse_expression(self, tokens, expression_stack):
+    def __parse_expression(self, tokens, expression_stack, operator = None):
         # Must be a literal or an unary operator
-        token = tokens.pop(0)
-        if token.type == TokenType.LeftParenthesis:
-            self.__parse_expression(tokens, expression_stack)
-            token = tokens.pop(0)
+        if tokens[0].type == TokenType.LeftParenthesis:
+            token = tokens.pop(0) # pop the left parenthesis
+            while tokens[0].type != TokenType.RightParenthesis:
+                self.__parse_expression(tokens, expression_stack)
+            token = tokens.pop(0) # pop the right parenthesis
             assert(token.type == TokenType.RightParenthesis)
 
-        if not expression_stack and token.type.is_operator():
-            node = ast.UnaryOperatorNode(token.text)
-            self.__parse_expression(tokens, expression_stack)
-            node.add_node(expression_stack.pop())
-            expression_stack.append(node)
-        else:
-            if not expression_stack:
-                expression_stack.append(ast.ConstantNode(type='int', value=int(token.text)))
-            if len(tokens) > 1 and tokens[0].type.is_operator():
-                rhs = expression_stack.pop()
-                operator_token = tokens.pop(0)
+        token = None
+        while tokens[0].type != TokenType.RightParenthesis and tokens[0].type != TokenType.NewLine:
+            if (not token or token.type != TokenType.Literal) and tokens[0].type.is_unary_operator():
+                token = tokens.pop(0)
+                node = ast.UnaryOperatorNode(token.text)
                 self.__parse_expression(tokens, expression_stack)
-                lhs = expression_stack.pop()
-
-                node = ast.BinaryOperatorNode(operator_token.text)
-                node.add_node(rhs)
-                node.add_node(lhs)
+                node.add_node(expression_stack.pop())
                 expression_stack.append(node)
+            elif tokens[0].type == TokenType.Literal:
+                token = tokens.pop(0)
+                expression_stack.append(ast.ConstantNode(type='int', value=int(token.text)))
 
+            elif tokens[0].type.is_binary_operator() or tokens[0].type.is_logic_operator():
+                if operator and operator.type.priority() < tokens[0].type.priority():
+                    return
+
+                if tokens[0].type.is_binary_operator():
+                    rhs = expression_stack.pop()
+                    operator_token = tokens.pop(0)
+                    self.__parse_expression(tokens, expression_stack, operator_token)
+                    lhs = expression_stack.pop()
+
+                    node = ast.BinaryOperatorNode(operator_token.text)
+                    node.add_node(rhs)
+                    node.add_node(lhs)
+                    expression_stack.append(node)
+                elif tokens[0].type.is_logic_operator():
+                    rhs = expression_stack.pop()
+                    operator_token = tokens.pop(0)
+                    self.__parse_expression(tokens, expression_stack, operator_token)
+                    lhs = expression_stack.pop()
+
+                    node = ast.LogicOperatorNode(operator_token.text)
+                    node.add_node(rhs)
+                    node.add_node(lhs)
+                    expression_stack.append(node)

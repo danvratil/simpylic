@@ -23,10 +23,9 @@ expression = number
     | ( number, binary_operator, expression )
     | "(", expression, ")" ;
 
-
 return_statement = 'return', white_space, expression ;
 
 unary_operator = "!" | "~" | "-" ;
-binary_operator = "+" | "-" | "*" | "/" ;
+binary_operator = "+" | "-" | "*" | "/" | "and" | "or" | "==" | "!=" | "<" | "<=" | ">" | ">="
 
 ```
