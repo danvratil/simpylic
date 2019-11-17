@@ -38,6 +38,7 @@ class TokenType(Enum):
     GreaterThanOrEqual = auto()
     Negation = auto()
     Tilde = auto()
+    Assignment = auto()
 
     LeftParenthesis = auto()
     RightParenthesis = auto()
@@ -47,7 +48,7 @@ class TokenType(Enum):
     KeywordOr = auto()
 
     __unary_operators = [Minus, Tilde, Negation]
-    __binary_operators = [Plus, Minus, Star, Slash]
+    __binary_operators = [Plus, Minus, Star, Slash, Assignment]
     __logic_operators = [LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual, Equals, NotEquals, KeywordAnd, KeywordOr]
 
     def is_unary_operator(self):
@@ -115,7 +116,8 @@ class Tokenizer:
                          '<' : TokenType.LessThan,
                          '>=': TokenType.GreaterThanOrEqual,
                          '<=': TokenType.LessThanOrEqual,
-                         '>' : TokenType.GreaterThan
+                         '>' : TokenType.GreaterThan,
+                         '=' : TokenType.Assignment
                        }
 
     __keywords = { 'return': TokenType.KeywordReturn,
@@ -161,13 +163,13 @@ class Tokenizer:
                         self.__tokens.append(Token(text=token_text, type=Tokenizer.__long_operators[token_text], **self.__token_pos()))
                         self.__pos += len(token_text)
                     else:
-                        raise TokenizerError(f"Unknown operator '{token_text}'", self.__line, self.__pos)
+                        raise TokenizerError(f"Unknown operator '{token_text}'", **self.__token_pos())
                     continue
             elif c.isalpha():
                 token_text = c
                 while True:
                     c = next(char_iter, None)
-                    if not c or not c.isalpha() and not c.isdigit():
+                    if not c or not c.isalpha() and not c.isdigit() and not c == '_':
                         break
                     token_text += c
                 if token_text in Tokenizer.__keywords:
@@ -188,7 +190,7 @@ class Tokenizer:
                 self.__pos += len(token_text)
                 continue
             else:
-                raise TokenizerError(f"Invalid token '{c}' on line {self.__line}, pos {self.__pos}")
+                raise TokenizerError(f"Invalid token '{c}'", **self.__token_pos())
 
             c = next(char_iter, None)
 

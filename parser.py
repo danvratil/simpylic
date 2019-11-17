@@ -26,6 +26,8 @@ class Parser:
         pass
 
     def parse(self, tokens):
+        self.__variables = []
+
         root = ast.ProgramNode()
         main = ast.FunctionNode("main")
         root.add_node(main)
@@ -41,6 +43,11 @@ class Parser:
         peek_token = tokens[0]
         if peek_token.type == TokenType.KeywordReturn:
             return self.__parse_return_stmt(tokens)
+        elif peek_token.type == TokenType.Identifier:
+            expression_stack = []
+            self.__parse_expression(tokens, expression_stack)
+            assert(len(expression_stack) == 1)
+            return expression_stack[0]
         elif peek_token.type == TokenType.NewLine:
             tokens.pop(0)
             return None
@@ -80,6 +87,23 @@ class Parser:
             elif tokens[0].type == TokenType.Literal:
                 token = tokens.pop(0)
                 expression_stack.append(ast.ConstantNode(type='int', value=int(token.text)))
+            elif tokens[0].type == TokenType.Identifier:
+                token = tokens.pop(0)
+                if tokens and tokens[0].type == TokenType.Assignment:
+                    if token.text not in self.__variables:
+                        node = ast.DeclarationNode(name=token.text)
+                        tokens.pop(0) # eat the '=' operator
+                        self.__parse_expression(tokens, expression_stack)
+                        node.add_node(expression_stack.pop(0))
+                        self.__variables.append(token.text)
+                    else:
+                        node = ast.VariableNode(name=token.text)
+                else:
+                    if not token.text in self.__variables:
+                        raise ParserError(f"Undefined variable {token.text}")
+                    else:
+                        node = ast.VariableNode(name=token.text)
+                expression_stack.append(node)
 
             elif tokens[0].type.is_binary_operator() or tokens[0].type.is_logic_operator():
                 if operator and operator.type.priority() < tokens[0].type.priority():

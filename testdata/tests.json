@@ -62,5 +62,25 @@
     {
         "test": "return-logic-compare-4",
         "return-code": 1
+    },
+    {
+        "test": "variable-1",
+        "return-code": 10
+    },
+    {
+        "test": "variable-2",
+        "return-code": 3
+    },
+    {
+        "test": "variable-3",
+        "return-code": 30
+    },
+    {
+        "test": "variable-4",
+        "return-code": 15
+    },
+    {
+        "test": "variable-5",
+        "return-code": 3
     }
 ]

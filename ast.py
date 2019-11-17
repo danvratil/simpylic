@@ -79,6 +79,7 @@ class BinaryOperatorNode(NonleafNode):
         Subtraction = '-'
         Multiplication = '*'
         Division = '/'
+        Assignment = '='
 
     def __init__(self, type):
         super().__init__()
@@ -104,6 +105,22 @@ class LogicOperatorNode(NonleafNode):
 
     def __repr__(self):
         return f"LogicOperatorNode(type={self.type})"
+
+class DeclarationNode(NonleafNode):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+
+    def __repr__(self):
+        return f"DeclarationNode(name={self.name})"
+
+class VariableNode(LeafNode):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+
+    def __repr__(self):
+        return f"VariableNode(name={self.name})"
 
 class AstDumper:
     @staticmethod
