@@ -122,6 +122,35 @@ class VariableNode(LeafNode):
     def __repr__(self):
         return f"VariableNode(name={self.name})"
 
+
+class ConditionNode(NonleafNode):
+    def __init__(self):
+        super().__init__()
+
+    def __repr__(self):
+        return f"ConditionNode()"
+
+class IfStatementNode(NonleafNode):
+    def __init__(self):
+        super().__init__()
+
+    def __repr__(self):
+        return "IfStatementNode()"
+
+class ElifStatementNode(NonleafNode):
+    def __init__(self):
+        super().__init__()
+
+    def __repr__(self):
+        return "ElifStatementNode()"
+
+class ElseStatementNode(NonleafNode):
+    def __init__(self):
+        super().__init__()
+
+    def __repr__(self):
+        return "ElseStatementNode()"
+
 class AstDumper:
     @staticmethod
     def dump(node, depth = 0, step = 2):

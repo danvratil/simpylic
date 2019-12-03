@@ -82,5 +82,21 @@
     {
         "test": "variable-5",
         "return-code": 3
+    },
+    {
+        "test": "if-condition-1",
+        "return-code": 2
+    },
+    {
+        "test": "if-condition-2",
+        "return-code": 3
+    },
+    {
+        "test": "if-condition-3",
+        "return-code": 2
+    },
+    {
+        "test": "if-condition-4",
+        "return-code": 6
     }
 ]

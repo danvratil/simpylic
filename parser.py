@@ -43,6 +43,8 @@ class Parser:
         peek_token = tokens[0]
         if peek_token.type == TokenType.KeywordReturn:
             return self.__parse_return_stmt(tokens)
+        elif peek_token.type == TokenType.KeywordIf:
+            return self.__parse_if_statement(tokens)
         elif peek_token.type == TokenType.Identifier:
             expression_stack = []
             self.__parse_expression(tokens, expression_stack)
@@ -67,6 +69,65 @@ class Parser:
 
         return stmt_node
 
+    def __parse_if_statement(self, tokens):
+        condition_node = ast.ConditionNode()
+
+        def parse_if(self, tokens):
+            assert(tokens[0].type == TokenType.KeywordIf)
+            tokens.pop(0) # pop the 'if' keyword
+
+            if_node = ast.IfStatementNode()
+            expression_stack = []
+            self.__parse_expression(tokens, expression_stack)
+            assert(len(expression_stack) == 1)
+            if_node.add_node(expression_stack.pop(0))
+            assert(tokens[0].type == TokenType.Colon)
+            tokens.pop(0) # pop the colon
+            while tokens[0].type == TokenType.NewLine: tokens.pop(0)
+            if_node.add_node(self.__parse_statement(tokens))
+            return if_node
+
+        def parse_else(self, tokens):
+            assert(tokens[0].type == TokenType.KeywordElse)
+            tokens.pop(0) # pop the 'else' keyword
+            assert(tokens[0].type == TokenType.Colon)
+            tokens.pop(0) # pop the colon
+            while tokens[0].type == TokenType.NewLine: tokens.pop(0)
+
+            else_node = ast.ElseStatementNode()
+            else_node.add_node(self.__parse_statement(tokens))
+            return else_node
+
+        def parse_elif(self, tokens):
+            assert(tokens[0].type == TokenType.KeywordElif)
+            tokens.pop(0) # pop the 'elif' keyword
+
+            elif_node = ast.ElifStatementNode()
+            expression_stack = []
+            self.__parse_expression(tokens, expression_stack)
+            assert(len(expression_stack) == 1)
+            elif_node.add_node(expression_stack.pop(0))
+            assert(tokens[0].type == TokenType.Colon)
+            tokens.pop(0) # pop the colon
+            while tokens[0].type == TokenType.NewLine: tokens.pop(0)
+            elif_node.add_node(self.__parse_statement(tokens))
+            return elif_node
+
+        condition_node.add_node(parse_if(self, tokens))
+
+        while True:
+            while tokens[0].type == TokenType.NewLine: tokens.pop(0)
+
+            if tokens[0].type == TokenType.KeywordElif:
+                condition_node.add_node(parse_elif(self, tokens))
+            elif tokens[0].type == TokenType.KeywordElse:
+                condition_node.add_node(parse_else(self, tokens))
+                break # nothing may follow else
+            else:
+                break
+
+        return condition_node
+
     def __parse_expression(self, tokens, expression_stack, operator = None):
         # Must be a literal or an unary operator
         if tokens[0].type == TokenType.LeftParenthesis:
@@ -77,7 +138,7 @@ class Parser:
             assert(token.type == TokenType.RightParenthesis)
 
         token = None
-        while tokens[0].type != TokenType.RightParenthesis and tokens[0].type != TokenType.NewLine:
+        while tokens[0].type != TokenType.RightParenthesis and tokens[0].type != TokenType.NewLine and tokens[0].type != TokenType.Colon:
             if (not token or token.type != TokenType.Literal) and tokens[0].type.is_unary_operator():
                 token = tokens.pop(0)
                 node = ast.UnaryOperatorNode(token.text)

@@ -46,6 +46,11 @@ class TokenType(Enum):
     KeywordReturn = auto()
     KeywordAnd = auto()
     KeywordOr = auto()
+    KeywordIf = auto()
+    KeywordElif = auto()
+    KeywordElse = auto()
+
+    Colon = auto()
 
     __unary_operators = [Minus, Tilde, Negation]
     __binary_operators = [Plus, Minus, Star, Slash, Assignment]
@@ -122,7 +127,10 @@ class Tokenizer:
 
     __keywords = { 'return': TokenType.KeywordReturn,
                    'and': TokenType.KeywordAnd,
-                   'or': TokenType.KeywordOr
+                   'or': TokenType.KeywordOr,
+                   'if': TokenType.KeywordIf,
+                   'elif': TokenType.KeywordElif,
+                   'else': TokenType.KeywordElse
                  }
 
     def __init__(self, source):
@@ -148,6 +156,9 @@ class Tokenizer:
                 self.__tokens.append(Token(text=c, type=TokenType.NewLine, **self.__token_pos()))
                 self.__pos = 0
                 self.__line += 1
+            elif c == ':':
+                self.__tokens.append(Token(text=c, type=TokenType.Colon, **self.__token_pos()))
+                self.__pos += 1
             elif c in Tokenizer.__operators:
                 if c in Tokenizer.__single_operators:
                     self.__tokens.append(Token(text=c, type=Tokenizer.__single_operators[c], **self.__token_pos()))

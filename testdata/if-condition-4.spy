@@ -1,0 +1,8 @@
+a = 1
+b = 2
+if b < a:
+    c = 5
+else:
+    c = 6
+
+return c

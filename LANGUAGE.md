@@ -15,6 +15,7 @@ program = { statement, new_line } ;
 (* This should represent all statements currently supported by
    the simpylic parser. *)
 statement = return_statement
+    | if_statement
     | expression ;
 
 (* This should represent all expressions currently supported by
@@ -25,7 +26,12 @@ expression = number
     | ( expression, binary_operator, expression )
     | "(", expression, ")" ;
 
-return_statement = 'return', white_space, expression ;
+return_statement = "return", white_space, expression ;
+
+if_statement = "if", expression, ":", statement
+        ( "elif", expression, ":", statement )*
+        [ "else", ":", statement ]
+
 
 unary_operator = "!" | "~" | "-" ;
 binary_operator = "+" | "-" | "*" | "/" | "and" | "or" | "==" | "!=" | "<" | "<=" | ">" | ">="

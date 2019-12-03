@@ -97,8 +97,15 @@ class AsmGenerator:
             self.__emit_return_stmt_asm(stmt_node)
         elif isinstance(stmt_node, ast.DeclarationNode):
             self.__emit_declaration_asm(stmt_node)
+        elif isinstance(stmt_node, ast.ConditionNode):
+            self.__emit_condition_asm(stmt_node)
         else:
             self.__emit_expression_stmt(stmt_node)
+
+    def __generate_label(self, label):
+        label = f'{label}_{self.__lastLabelId}'
+        self.__lastLabelId += 1
+        return label
 
     def __emit_return_stmt_asm(self, ret_node):
         # For return we first need to emit the expression, then the return itself
@@ -116,10 +123,33 @@ class AsmGenerator:
         self.__stack_index -= 8
         self.__variable_map[decl_node.name] = self.__stack_index
 
-    def __generate_label(self, label):
-        label = f'{label}_{self.__lastLabelId}'
-        self.__lastLabelId += 1
-        return label
+    def __emit_condition_asm(self, cond_node):
+        nodes = cond_node.nodes()
+        assert(len(nodes) > 0)
+
+        post_conditional_lbl = self.__generate_label("post_cond")
+
+        while nodes:
+            node = nodes.pop(0)
+            if isinstance(node, ast.IfStatementNode) or isinstance(node, ast.ElifStatementNode):
+                if isinstance(node, ast.ElifStatementNode):
+                    self.emitter.label(cond_label)
+
+                self.__emit_expression_stmt(node.nodes()[0])
+                self.emitter.instruction("cmpl", "$0", "%eax")
+                if not nodes:
+                    self.emitter.instruction("je", post_conditional_lbl)
+                else:
+                    cond_label = self.__generate_label("cond")
+                    self.emitter.instruction("je", cond_label)
+                self.emit_statement_asm(node.nodes()[1])
+                self.emitter.instruction("jmp", post_conditional_lbl)
+            else:
+                self.emitter.label(cond_label)
+                self.emit_statement_asm(node.nodes()[0])
+
+        # End of the entire if statement
+        self.emitter.label(post_conditional_lbl)
 
     def __emit_expression_stmt(self, stmt_node):
         if isinstance(stmt_node, ast.ConstantNode):
