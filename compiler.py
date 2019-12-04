@@ -16,13 +16,14 @@
 """
 
 import ast
+from typing import TextIO
 
 class AsmGeneratorError(Exception):
     pass
 
 class AsmEmitter:
     class FunctionEmitter:
-        def __init__(self, emitter, name):
+        def __init__(self, emitter, name: str):
             self._emitter = emitter
             self._name = name
 
@@ -32,15 +33,15 @@ class AsmEmitter:
         def __exit__(self, type, value, traceback):
             self._emitter.end_function()
 
-    def __init__(self, output):
+    def __init__(self, output: TextIO):
         self._output = output
         self._depth = 0
         self._step = 4
 
-    def function(self, name):
+    def function(self, name: str):
         return AsmEmitter.FunctionEmitter(self, name)
 
-    def begin_function(self, name):
+    def begin_function(self, name: str):
         self._write(f"    .global {name}")
         self._write(f"{name}:")
         self._depth += 1
@@ -53,19 +54,19 @@ class AsmEmitter:
         self.instruction("ret")
         self._depth -= 1
 
-    def instruction(self, instruction, *args):
+    def instruction(self, instruction: str, *args):
         self._write(f"{instruction} {', '.join([str(s) for s in args])}")
 
-    def label(self, label):
+    def label(self, label: str):
         self._write(f"{label}:", ident=False)
 
-    def push_stack(self, reg):
+    def push_stack(self, reg: str):
         self.instruction("push", reg)
 
-    def pop_stack(self, reg):
+    def pop_stack(self, reg: str):
         self.instruction("pop", reg)
 
-    def _write(self, data, ident=True):
+    def _write(self, data: str, ident=True):
         if ident:
             self._output.write(" " * self._depth * self._step)
         self._output.write(data)
@@ -73,26 +74,26 @@ class AsmEmitter:
 
 
 class AsmGenerator:
-    def __init__(self, output):
+    def __init__(self, output: TextIO):
         self.emitter = AsmEmitter(output)
         self.__lastLabelId = 0
 
-    def generate(self, ast):
+    def generate(self, ast: ast.AstNode):
         self.__stack_index = 0
         self.__variable_map = {}
         self.emit_program_asm(ast)
 
 
-    def emit_program_asm(self, program_node):
+    def emit_program_asm(self, program_node: ast.ProgramNode):
         for func in program_node.nodes():
             self.emit_function_asm(func)
 
-    def emit_function_asm(self, function_node):
+    def emit_function_asm(self, function_node: ast.FunctionNode):
         with self.emitter.function(function_node.name):
             for stmt in function_node.nodes():
                 self.emit_statement_asm(stmt)
 
-    def emit_statement_asm(self, stmt_node):
+    def emit_statement_asm(self, stmt_node: ast.AstNode):
         if isinstance(stmt_node, ast.ReturnStmtNode):
             self.__emit_return_stmt_asm(stmt_node)
         elif isinstance(stmt_node, ast.DeclarationNode):
@@ -102,19 +103,19 @@ class AsmGenerator:
         else:
             self.__emit_expression_stmt(stmt_node)
 
-    def __generate_label(self, label):
+    def __generate_label(self, label: str):
         label = f'{label}_{self.__lastLabelId}'
         self.__lastLabelId += 1
         return label
 
-    def __emit_return_stmt_asm(self, ret_node):
+    def __emit_return_stmt_asm(self, ret_node: ast.AstNode):
         # For return we first need to emit the expression, then the return itself
         assert(len(ret_node.nodes()) == 1)
 
         expr_node = ret_node.nodes()[0]
         self.__emit_expression_stmt(expr_node);
 
-    def __emit_declaration_asm(self, decl_node):
+    def __emit_declaration_asm(self, decl_node: ast.DeclarationNode):
         assert(len(decl_node.nodes()) == 1)
 
         init_expr_node = decl_node.nodes()[0]
@@ -123,7 +124,7 @@ class AsmGenerator:
         self.__stack_index -= 8
         self.__variable_map[decl_node.name] = self.__stack_index
 
-    def __emit_condition_asm(self, cond_node):
+    def __emit_condition_asm(self, cond_node: ast.ConditionNode):
         nodes = cond_node.nodes()
         assert(len(nodes) > 0)
 
@@ -151,7 +152,7 @@ class AsmGenerator:
         # End of the entire if statement
         self.emitter.label(post_conditional_lbl)
 
-    def __emit_expression_stmt(self, stmt_node):
+    def __emit_expression_stmt(self, stmt_node: ast.AstNode):
         if isinstance(stmt_node, ast.ConstantNode):
             self.emitter.instruction("mov", f"${stmt_node.value}", "%eax");
         elif isinstance(stmt_node, ast.VariableNode):

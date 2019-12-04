@@ -153,7 +153,7 @@ class ElseStatementNode(NonleafNode):
 
 class AstDumper:
     @staticmethod
-    def dump(node, depth = 0, step = 2):
+    def dump(node: AstNode, depth: int = 0, step: int = 2):
         print(" " * depth * step + str(node))
         if isinstance(node, NonleafNode):
             for subnode in node.nodes():

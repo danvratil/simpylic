@@ -20,13 +20,14 @@ from parser import Parser
 from compiler import AsmGenerator
 from ast import AstDumper
 from enum import Enum
+from typing import TextIO
 
 class Operation(Enum):
     Compile = 1
     Interpret = 2
     DumpAst = 3
 
-def run(srcfile, outfile, operation):
+def run(srcfile: TextIO, outfile: TextIO, operation: Operation):
     if operation == Operation.Interpret:
         raise RuntimeError("Interpreter mode not yet implemeneted.")
 

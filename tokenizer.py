@@ -16,7 +16,7 @@
 """
 
 import itertools
-
+from typing import TextIO
 from enum import Enum, auto
 
 class TokenType(Enum):
@@ -79,7 +79,7 @@ class TokenType(Enum):
             return 1
 
 class Token:
-    def __init__(self, text, type, line, pos):
+    def __init__(self, text: str, type: TokenType, line: int, pos: int):
         self.type = type
         self.line = line
         self.pos = pos
@@ -133,7 +133,7 @@ class Tokenizer:
                    'else': TokenType.KeywordElse
                  }
 
-    def __init__(self, source):
+    def __init__(self, source: TextIO):
         self.source = source
 
     def __token_pos(self):

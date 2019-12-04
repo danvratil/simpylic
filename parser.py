@@ -17,6 +17,7 @@
 
 import ast
 from tokenizer import TokenType, Token
+from typing import List
 
 class ParserError(Exception):
     pass
@@ -25,7 +26,7 @@ class Parser:
     def __init__(self):
         pass
 
-    def parse(self, tokens):
+    def parse(self, tokens: List[Token]):
         self.__variables = []
 
         root = ast.ProgramNode()
@@ -39,7 +40,7 @@ class Parser:
 
         return root
 
-    def __parse_statement(self, tokens):
+    def __parse_statement(self, tokens: List[Token]):
         peek_token = tokens[0]
         if peek_token.type == TokenType.KeywordReturn:
             return self.__parse_return_stmt(tokens)
@@ -56,7 +57,7 @@ class Parser:
         else:
             raise ParserError(f'Unexpected statement identifier {tokens[0]}')
 
-    def __parse_return_stmt(self, tokens):
+    def __parse_return_stmt(self, tokens: List[Token]):
         token = tokens.pop(0)
         assert(token.type == TokenType.KeywordReturn)
 
@@ -69,10 +70,10 @@ class Parser:
 
         return stmt_node
 
-    def __parse_if_statement(self, tokens):
+    def __parse_if_statement(self, tokens: List[Token]):
         condition_node = ast.ConditionNode()
 
-        def parse_if(self, tokens):
+        def parse_if(self, tokens: List[Token]):
             assert(tokens[0].type == TokenType.KeywordIf)
             tokens.pop(0) # pop the 'if' keyword
 
@@ -87,7 +88,7 @@ class Parser:
             if_node.add_node(self.__parse_statement(tokens))
             return if_node
 
-        def parse_else(self, tokens):
+        def parse_else(self, tokens: List[Token]):
             assert(tokens[0].type == TokenType.KeywordElse)
             tokens.pop(0) # pop the 'else' keyword
             assert(tokens[0].type == TokenType.Colon)
@@ -98,7 +99,7 @@ class Parser:
             else_node.add_node(self.__parse_statement(tokens))
             return else_node
 
-        def parse_elif(self, tokens):
+        def parse_elif(self, tokens: List[Token]):
             assert(tokens[0].type == TokenType.KeywordElif)
             tokens.pop(0) # pop the 'elif' keyword
 
@@ -128,7 +129,7 @@ class Parser:
 
         return condition_node
 
-    def __parse_expression(self, tokens, expression_stack, operator = None):
+    def __parse_expression(self, tokens: List[Token], expression_stack: List[ast.AstNode], operator: ast.AstNode = None):
         # Must be a literal or an unary operator
         if tokens[0].type == TokenType.LeftParenthesis:
             token = tokens.pop(0) # pop the left parenthesis
