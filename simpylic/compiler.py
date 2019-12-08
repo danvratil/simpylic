@@ -246,5 +246,21 @@ class AsmGenerator:
                     self.emitter.instruction("setg", "%al")
                 else:
                     raise AsmGeneratorError(f"Invalid logic operator type {stmt_node.type}")
+        elif isinstance(stmt_node, ast.TernaryOperatorNode):
+            logic_expression = stmt_node.nodes()[0]
+            true_expression = stmt_node.nodes()[1]
+            false_expression = stmt_node.nodes()[2]
+
+            else_label = self.__generate_label("conditional")
+            post_conditional_lbl = self.__generate_label("post_conditional")
+
+            self.__emit_expression_stmt(logic_expression)
+            self.emitter.instruction("cmp", "$0", "%eax")
+            self.emitter.instruction("je", else_label)
+            self.__emit_expression_stmt(true_expression)
+            self.emitter.instruction("jmp", post_conditional_lbl)
+            self.emitter.label(else_label)
+            self.__emit_expression_stmt(false_expression)
+            self.emitter.label(post_conditional_lbl)
         else:
             raise AsmGeneratorError(f"Invalid expression {stmt_node} in statement")

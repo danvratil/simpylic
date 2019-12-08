@@ -151,6 +151,14 @@ class ElseStatementNode(NonleafNode):
     def __repr__(self):
         return "ElseStatementNode()"
 
+class TernaryOperatorNode(NonleafNode):
+    def __init__(self):
+        super().__init__()
+
+    def __repr__(self):
+        return "TernaryOperatorNode()"
+
+
 class AstDumper:
     @staticmethod
     def dump(node: AstNode, depth: int = 0, step: int = 2):

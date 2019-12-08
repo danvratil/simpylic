@@ -39,6 +39,7 @@ class TokenType(Enum):
     Negation = auto()
     Tilde = auto()
     Assignment = auto()
+    QuestionMark = auto()
 
     LeftParenthesis = auto()
     RightParenthesis = auto()
@@ -54,6 +55,7 @@ class TokenType(Enum):
 
     __unary_operators = [Minus, Tilde, Negation]
     __binary_operators = [Plus, Minus, Star, Slash, Assignment]
+    __ternary_operators = [QuestionMark, Colon]
     __logic_operators = [LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual, Equals, NotEquals, KeywordAnd, KeywordOr]
 
     def is_unary_operator(self):
@@ -65,6 +67,9 @@ class TokenType(Enum):
     def is_logic_operator(self):
         return self.value in TokenType.__logic_operators.value
 
+    def is_ternary_operator(self):
+        return self.value in TokenType.__ternary_operators.value
+
     def priority(self):
         if self.is_unary_operator():
             return 100
@@ -74,7 +79,12 @@ class TokenType(Enum):
             else:
                 return 80
         elif self.is_binary_operator():
-            return 80
+            if self == TokenType.Assignment:
+                return 95
+            else:
+                return 80
+        elif self.is_ternary_operator():
+            return 92
         else:
             return 1
 
@@ -105,7 +115,7 @@ class TokenizerError(Exception):
 
 class Tokenizer:
 
-    __operators = [ '+', '-', '*', '/', '~', '!', '<', '>', '(', ')', '=' ]
+    __operators = [ '+', '-', '*', '/', '~', '!', '<', '>', '(', ')', '=', '?' ]
 
     __single_operators = { '+': TokenType.Plus,
                            '-': TokenType.Minus,
@@ -114,7 +124,8 @@ class Tokenizer:
                            '~': TokenType.Tilde,
                            '!': TokenType.Negation,
                            '(': TokenType.LeftParenthesis,
-                           ')': TokenType.RightParenthesis
+                           ')': TokenType.RightParenthesis,
+                           '?': TokenType.QuestionMark
                          }
     __long_operators = { '==': TokenType.Equals,
                          '!=': TokenType.NotEquals,

@@ -186,7 +186,7 @@ class Parser:
                         node = ast.VariableNode(name=token.text)
                 expression_stack.append(node)
 
-            elif tokens[0].type.is_binary_operator() or tokens[0].type.is_logic_operator():
+            elif tokens[0].type.is_binary_operator() or tokens[0].type.is_logic_operator() or tokens[0].type.is_ternary_operator():
                 if operator and operator.type.priority() < tokens[0].type.priority():
                     return
 
@@ -209,4 +209,19 @@ class Parser:
                     node = ast.LogicOperatorNode(operator_token.text)
                     node.add_node(rhs)
                     node.add_node(lhs)
+                    expression_stack.append(node)
+                elif tokens[0].type.is_ternary_operator():
+                    expr = expression_stack.pop()
+                    operator_token = tokens.pop(0)
+                    self.__parse_expression(tokens, expression_stack)
+                    true_branch = expression_stack.pop(0)
+                    assert(tokens[0].type == TokenType.Colon)
+                    tokens.pop(0) # pop colon
+                    self.__parse_expression(tokens, expression_stack)
+                    false_branch = expression_stack.pop(0)
+
+                    node = ast.TernaryOperatorNode()
+                    node.add_node(expr)
+                    node.add_node(true_branch)
+                    node.add_node(false_branch)
                     expression_stack.append(node)

@@ -98,5 +98,9 @@
     {
         "test": "if-condition-4",
         "return-code": 6
+    },
+    {
+        "test": "ternary-operator",
+        "return-code": 2
     }
 ]
