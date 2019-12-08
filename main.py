@@ -18,7 +18,7 @@
 import argparse
 from sys import stdout
 
-import simpylic
+from simpylic import simpylic
 
 def main():
     parser = argparse.ArgumentParser()

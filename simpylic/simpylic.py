@@ -15,10 +15,11 @@
  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from tokenizer import Tokenizer
-from parser import Parser
-from compiler import AsmGenerator
-from ast import AstDumper
+from .tokenizer import Tokenizer
+from .parser import Parser
+from .compiler import AsmGenerator
+from .ast import AstDumper
+
 from enum import Enum
 from typing import TextIO
 

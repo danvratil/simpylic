@@ -15,8 +15,9 @@
  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import ast
-from tokenizer import TokenType, Token
+from . import ast
+from .tokenizer import TokenType, Token
+
 from typing import List
 
 class ParserError(Exception):
