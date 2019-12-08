@@ -6,15 +6,19 @@ from io import StringIO
 
 import simpylic as Simpylic
 
+
+def log(msg):
+    print(msg, end='', flush=True)
+
 def main():
     with open('testdata/tests.json', encoding='utf-8') as infile:
         tests = json.load(infile)
 
     for test in tests:
         testfile = f'testdata/{test["test"]}.spy'
-        print(f'Testing {testfile}...', end='')
+        log(f'Testing {testfile}...')
 
-        print('compiling...', end='')
+        log('compiling...')
         buffer = StringIO()
         with open(testfile, encoding='utf-8') as src:
             Simpylic.run(src, buffer, Simpylic.Operation.Compile)
@@ -26,13 +30,13 @@ def main():
         if result != 0:
             raise RuntimeError(f'gcc error {result}: {err}')
 
-        print('running...', end='')
+        log('running...')
         p = subprocess.Popen('/tmp/simpylic-test-out')
         result = p.wait()
         if result != int(test['return-code']) % 256:
             raise RuntimeError(f'The utility finished with return code {result} does not match the expected result {test["return-code"]}')
 
-        print('OK.')
+        log('OK.\n')
 
         os.remove('/tmp/simpylic-test-out')
 
