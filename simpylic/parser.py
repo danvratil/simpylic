@@ -32,12 +32,12 @@ class Parser:
 
         root = ast.ProgramNode()
         main = ast.FunctionNode("main")
-        root.add_node(main)
+        root.functions.append(main)
 
         while tokens:
-            node = self.__parse_statement(tokens)
-            if node:
-                main.add_node(node)
+            stmt_node = self.__parse_statement(tokens)
+            if stmt_node:
+                main.statements.append(stmt_node)
 
         return root
 
@@ -67,7 +67,7 @@ class Parser:
         expression_stack = []
         self.__parse_expression(tokens, expression_stack)
         assert(len(expression_stack) == 1)
-        stmt_node.add_node(expression_stack[0])
+        stmt_node.expression = expression_stack.pop(0)
 
         return stmt_node
 
@@ -82,11 +82,11 @@ class Parser:
             expression_stack = []
             self.__parse_expression(tokens, expression_stack)
             assert(len(expression_stack) == 1)
-            if_node.add_node(expression_stack.pop(0))
+            if_node.condition_expression = expression_stack.pop(0)
             assert(tokens[0].type == TokenType.Colon)
             tokens.pop(0) # pop the colon
             while tokens[0].type == TokenType.NewLine: tokens.pop(0)
-            if_node.add_node(self.__parse_statement(tokens))
+            if_node.true_statement = self.__parse_statement(tokens)
             return if_node
 
         def parse_else(self, tokens: List[Token]):
@@ -97,7 +97,7 @@ class Parser:
             while tokens[0].type == TokenType.NewLine: tokens.pop(0)
 
             else_node = ast.ElseStatementNode()
-            else_node.add_node(self.__parse_statement(tokens))
+            else_node.false_statement = self.__parse_statement(tokens)
             return else_node
 
         def parse_elif(self, tokens: List[Token]):
@@ -108,22 +108,22 @@ class Parser:
             expression_stack = []
             self.__parse_expression(tokens, expression_stack)
             assert(len(expression_stack) == 1)
-            elif_node.add_node(expression_stack.pop(0))
+            elif_node.condition_expression = expression_stack.pop(0)
             assert(tokens[0].type == TokenType.Colon)
             tokens.pop(0) # pop the colon
             while tokens[0].type == TokenType.NewLine: tokens.pop(0)
-            elif_node.add_node(self.__parse_statement(tokens))
+            elif_node.true_statement = self.__parse_statement(tokens)
             return elif_node
 
-        condition_node.add_node(parse_if(self, tokens))
+        condition_node.if_condition = parse_if(self, tokens)
 
         while True:
             while tokens[0].type == TokenType.NewLine: tokens.pop(0)
 
             if tokens[0].type == TokenType.KeywordElif:
-                condition_node.add_node(parse_elif(self, tokens))
+                condition_node.elif_conditions.append(parse_elif(self, tokens))
             elif tokens[0].type == TokenType.KeywordElse:
-                condition_node.add_node(parse_else(self, tokens))
+                condition_node.else_condition = parse_else(self, tokens)
                 break # nothing may follow else
             else:
                 break
@@ -163,7 +163,7 @@ class Parser:
                 token = tokens.pop(0)
                 node = ast.UnaryOperatorNode(token.text)
                 self.__parse_expression(tokens, expression_stack)
-                node.add_node(expression_stack.pop())
+                node.expression = expression_stack.pop(0)
                 expression_stack.append(node)
             elif tokens[0].type == TokenType.Literal:
                 token = tokens.pop(0)
@@ -175,7 +175,7 @@ class Parser:
                         node = ast.DeclarationNode(name=token.text)
                         tokens.pop(0) # eat the '=' operator
                         self.__parse_expression(tokens, expression_stack)
-                        node.add_node(expression_stack.pop(0))
+                        node.init_expression = expression_stack.pop(0)
                         self.__variables.append(token.text)
                     else:
                         node = ast.VariableNode(name=token.text)
@@ -191,37 +191,34 @@ class Parser:
                     return
 
                 if tokens[0].type.is_binary_operator():
-                    rhs = expression_stack.pop()
                     operator_token = tokens.pop(0)
-                    self.__parse_expression(tokens, expression_stack, operator_token)
-                    lhs = expression_stack.pop()
-
                     node = ast.BinaryOperatorNode(operator_token.text)
-                    node.add_node(rhs)
-                    node.add_node(lhs)
+                    node.lhs_expression = expression_stack.pop(0)
+
+                    self.__parse_expression(tokens, expression_stack, operator_token)
+                    node.rhs_expression = expression_stack.pop(0)
+
                     expression_stack.append(node)
                 elif tokens[0].type.is_logic_operator():
-                    rhs = expression_stack.pop()
                     operator_token = tokens.pop(0)
-                    self.__parse_expression(tokens, expression_stack, operator_token)
-                    lhs = expression_stack.pop()
-
                     node = ast.LogicOperatorNode(operator_token.text)
-                    node.add_node(rhs)
-                    node.add_node(lhs)
+                    node.lhs_expression = expression_stack.pop(0)
+
+                    self.__parse_expression(tokens, expression_stack, operator_token)
+                    node.rhs_expression = expression_stack.pop(0)
+
                     expression_stack.append(node)
                 elif tokens[0].type.is_ternary_operator():
-                    expr = expression_stack.pop()
                     operator_token = tokens.pop(0)
+                    node = ast.TernaryOperatorNode()
+                    node.condition_expression = expression_stack.pop(0)
+
                     self.__parse_expression(tokens, expression_stack)
-                    true_branch = expression_stack.pop(0)
+                    node.true_expression = expression_stack.pop(0)
                     assert(tokens[0].type == TokenType.Colon)
                     tokens.pop(0) # pop colon
-                    self.__parse_expression(tokens, expression_stack)
-                    false_branch = expression_stack.pop(0)
 
-                    node = ast.TernaryOperatorNode()
-                    node.add_node(expr)
-                    node.add_node(true_branch)
-                    node.add_node(false_branch)
+                    self.__parse_expression(tokens, expression_stack)
+                    node.false_expression = expression_stack.pop(0)
+
                     expression_stack.append(node)

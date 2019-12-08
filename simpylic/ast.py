@@ -21,59 +21,74 @@ class AstError(RuntimeError):
     pass
 
 class AstNode:
-    pass
+    def traverse(self, depth: int):
+        print(' ' * depth, self, sep='')
 
-class LeafNode(AstNode):
-    pass
-
-class NonleafNode(AstNode):
+class ProgramNode(AstNode):
     def __init__(self):
-        self._subnodes = []
+        self.functions = [] # type: List[AstNode]
 
-    def add_node(self, node):
-        self._subnodes.append(node)
-
-    def nodes(self):
-        return self._subnodes
-
-class ProgramNode(NonleafNode):
     def __repr__(self):
         return "ProgramNode()"
 
-class FunctionNode(NonleafNode):
-    def __init__(self, name):
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        for node in self.functions:
+            node.traverse(depth + 1)
+
+
+class FunctionNode(AstNode):
+    def __init__(self, name: str):
         super().__init__()
         self.name = name
+        self.statements = [] # type: List[AstNode]
 
     def __repr__(self):
         return f"FunctionNode(name={self.name})"
 
-class ReturnStmtNode(NonleafNode):
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        for node in self.statements:
+            node.traverse(depth + 1)
+
+class ReturnStmtNode(AstNode):
+    def __init__(self):
+        self.expression = None # type: AstNode
+
     def __repr__(self):
         return "ReturnStmtNode()"
 
-class ConstantNode(LeafNode):
-    def __init__(self, type, value):
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        self.expression.traverse(depth + 1)
+
+class ConstantNode(AstNode):
+    def __init__(self, type: str, value: any):
         self.type = type
         self.value = value
 
     def __repr__(self):
         return f"ConstantNode(type={self.type}, value={self.value})"
 
-class UnaryOperatorNode(NonleafNode):
+class UnaryOperatorNode(AstNode):
     class Type(Enum):
         Negation = '-'
         BitwiseComplement = '~'
         LogicalNegation = '!'
 
-    def __init__(self, type):
+    def __init__(self, type: Type):
         super().__init__()
         self.type = UnaryOperatorNode.Type(type)
+        self.expression = None # type: AstNode
 
     def __repr__(self):
         return f"UnaryOperatorNode(type={self.type})"
 
-class BinaryOperatorNode(NonleafNode):
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        self.expression.traverse(depth + 1)
+
+class BinaryOperatorNode(AstNode):
     class Type(Enum):
         Addition = '+'
         Subtraction = '-'
@@ -81,14 +96,21 @@ class BinaryOperatorNode(NonleafNode):
         Division = '/'
         Assignment = '='
 
-    def __init__(self, type):
+    def __init__(self, type: Type):
         super().__init__()
         self.type = BinaryOperatorNode.Type(type)
+        self.lhs_expression = None # type: AstNode
+        self.rhs_expression = None # type: AstNode
 
     def __repr__(self):
         return f"BinaryOperatorNode(type={self.type})"
 
-class LogicOperatorNode(NonleafNode):
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        self.lhs_expression.traverse(depth + 1)
+        self.rhs_expression.traverse(depth + 1)
+
+class LogicOperatorNode(AstNode):
     class Type(Enum):
         LessThan = '<'
         LessThanOrEqual = '<='
@@ -99,23 +121,35 @@ class LogicOperatorNode(NonleafNode):
         And = 'and'
         Or = 'or'
 
-    def __init__(self, type):
+    def __init__(self, type: Type):
         super().__init__()
         self.type = LogicOperatorNode.Type(type)
+        self.lhs_expression = None # type: AstNode
+        self.rhs_expression = None # type: AstNode
 
     def __repr__(self):
         return f"LogicOperatorNode(type={self.type})"
 
-class DeclarationNode(NonleafNode):
-    def __init__(self, name):
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        self.lhs_expression.traverse(depth + 1)
+        self.rhs_expression.traverse(depth + 1)
+
+class DeclarationNode(AstNode):
+    def __init__(self, name: str):
         super().__init__()
         self.name = name
+        self.init_expression = None # type: AstNode
 
     def __repr__(self):
         return f"DeclarationNode(name={self.name})"
 
-class VariableNode(LeafNode):
-    def __init__(self, name):
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        self.init_expression.traverse(depth + 1)
+
+class VariableNode(AstNode):
+    def __init__(self, name: str):
         super().__init__()
         self.name = name
 
@@ -123,46 +157,81 @@ class VariableNode(LeafNode):
         return f"VariableNode(name={self.name})"
 
 
-class ConditionNode(NonleafNode):
+class ConditionNode(AstNode):
     def __init__(self):
         super().__init__()
+        self.if_condition = None # type: AstNode
+        self.elif_conditions = [] # type: List[AstNode]
+        self.else_condition = None # type: AstNode
 
     def __repr__(self):
         return f"ConditionNode()"
 
-class IfStatementNode(NonleafNode):
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        self.if_condition.traverse(depth + 1)
+        for cond in self.elif_conditions:
+            cond.traverse(depth + 1)
+        if self.else_condition:
+            self.else_condition.traverse(depth + 1)
+
+class IfStatementNode(AstNode):
     def __init__(self):
         super().__init__()
+        self.condition_expression = None # type: AstNode
+        self.true_statement = None # type: AstNode
 
     def __repr__(self):
         return "IfStatementNode()"
 
-class ElifStatementNode(NonleafNode):
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        self.condition_expression.traverse(depth + 1)
+        self.true_statement.traverse(depth + 1)
+
+class ElifStatementNode(AstNode):
     def __init__(self):
         super().__init__()
+        self.condition_expression = None # type: AstNode
+        self.true_statement = None # type: AstNode
 
     def __repr__(self):
         return "ElifStatementNode()"
 
-class ElseStatementNode(NonleafNode):
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        self.condition_expression.traverse(depth + 1)
+        self.true_statement.traverse(depth + 1)
+
+class ElseStatementNode(AstNode):
     def __init__(self):
         super().__init__()
+        self.false_statement = None # type: AstNode
 
     def __repr__(self):
         return "ElseStatementNode()"
 
-class TernaryOperatorNode(NonleafNode):
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        self.false_statement.traverse(depth + 1)
+
+class TernaryOperatorNode(AstNode):
     def __init__(self):
         super().__init__()
+        self.condition_expression = None # type: AstNode
+        self.true_expression = None # type: AstNode
+        self.false_expression = None # type: AstNode
 
     def __repr__(self):
         return "TernaryOperatorNode()"
 
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        self.condition_expression.traverse(depth + 1)
+        self.true_expression.traverse(depth + 1)
+        self.false_expression.traverse(depth + 1)
 
 class AstDumper:
     @staticmethod
     def dump(node: AstNode, depth: int = 0, step: int = 2):
-        print(" " * depth * step + str(node))
-        if isinstance(node, NonleafNode):
-            for subnode in node.nodes():
-                AstDumper.dump(subnode, depth + 1)
+        node.traverse(depth)

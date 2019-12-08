@@ -85,12 +85,12 @@ class AsmGenerator:
 
 
     def emit_program_asm(self, program_node: ast.ProgramNode):
-        for func in program_node.nodes():
+        for func in program_node.functions:
             self.emit_function_asm(func)
 
     def emit_function_asm(self, function_node: ast.FunctionNode):
         with self.emitter.function(function_node.name):
-            for stmt in function_node.nodes():
+            for stmt in function_node.statements:
                 self.emit_statement_asm(stmt)
 
     def emit_statement_asm(self, stmt_node: ast.AstNode):
@@ -109,45 +109,43 @@ class AsmGenerator:
         return label
 
     def __emit_return_stmt_asm(self, ret_node: ast.AstNode):
-        # For return we first need to emit the expression, then the return itself
-        assert(len(ret_node.nodes()) == 1)
-
-        expr_node = ret_node.nodes()[0]
-        self.__emit_expression_stmt(expr_node);
+        self.__emit_expression_stmt(ret_node.expression);
 
     def __emit_declaration_asm(self, decl_node: ast.DeclarationNode):
-        assert(len(decl_node.nodes()) == 1)
-
-        init_expr_node = decl_node.nodes()[0]
-        self.__emit_expression_stmt(init_expr_node)
+        self.__emit_expression_stmt(decl_node.init_expression)
         self.emitter.instruction("pushq %rax")
         self.__stack_index -= 8
         self.__variable_map[decl_node.name] = self.__stack_index
 
     def __emit_condition_asm(self, cond_node: ast.ConditionNode):
-        nodes = cond_node.nodes()
-        assert(len(nodes) > 0)
-
         post_conditional_lbl = self.__generate_label("post_cond")
 
-        while nodes:
-            node = nodes.pop(0)
-            if isinstance(node, ast.IfStatementNode) or isinstance(node, ast.ElifStatementNode):
-                if isinstance(node, ast.ElifStatementNode):
-                    self.emitter.label(cond_label)
-
-                self.__emit_expression_stmt(node.nodes()[0])
-                self.emitter.instruction("cmpl", "$0", "%eax")
-                if not nodes:
-                    self.emitter.instruction("je", post_conditional_lbl)
-                else:
-                    cond_label = self.__generate_label("cond")
-                    self.emitter.instruction("je", cond_label)
-                self.emit_statement_asm(node.nodes()[1])
-                self.emitter.instruction("jmp", post_conditional_lbl)
-            else:
+        def parse_if_or_elif(self, node: ast.AstNode, cond_label: str, post_conditional_lbl: str, is_last: bool) -> str:
+            if isinstance(node, ast.ElifStatementNode):
                 self.emitter.label(cond_label)
-                self.emit_statement_asm(node.nodes()[0])
+
+            self.__emit_expression_stmt(node.condition_expression)
+            self.emitter.instruction("cmpl", "$0", "%eax")
+            if is_last:
+                self.emitter.instruction("je", post_conditional_lbl)
+            else:
+                cond_label = self.__generate_label("cond")
+                self.emitter.instruction("je", cond_label)
+            self.emit_statement_asm(node.true_statement)
+            self.emitter.instruction("jmp", post_conditional_lbl)
+            return cond_label
+
+        cond_label = self.__generate_label("cond")
+        is_last = not cond_node.elif_conditions and not cond_node.else_condition
+        cond_label = parse_if_or_elif(self, cond_node.if_condition, cond_label, post_conditional_lbl, is_last)
+
+        for index, node in enumerate(cond_node.elif_conditions):
+            is_last = index == (len(cond_node.elif_conditions) - 1) and not cond_node.else_condition
+            cond_label = parse_if_or_elif(self, node, cond_label, post_conditional_lbl, is_last)
+
+        if cond_node.else_condition:
+            self.emitter.label(cond_label)
+            self.emit_statement_asm(cond_node.else_condition.false_statement)
 
         # End of the entire if statement
         self.emitter.label(post_conditional_lbl)
@@ -160,8 +158,7 @@ class AsmGenerator:
             self.emitter.instruction("mov", f"{offset}(%rbp)", "%eax")
         elif isinstance(stmt_node, ast.UnaryOperatorNode):
             # First prepare the content
-            assert(len(stmt_node.nodes()) == 1)
-            self.__emit_expression_stmt(stmt_node.nodes()[0])
+            self.__emit_expression_stmt(stmt_node.expression)
             if stmt_node.type == ast.UnaryOperatorNode.Type.Negation:
                 self.emitter.instruction("neg", "%eax")
             elif stmt_node.type == ast.UnaryOperatorNode.Type.LogicalNegation:
@@ -171,27 +168,24 @@ class AsmGenerator:
             elif stmt_node.type == ast.UnaryOperatorNode.Type.BitwiseComplement:
                 self.emitter.instruction("not", "%eax")
         elif isinstance(stmt_node, ast.BinaryOperatorNode):
-            # First prepare the content
-            assert(len(stmt_node.nodes()) == 2);
             if stmt_node.type == ast.BinaryOperatorNode.Type.Assignment:
-                expr_node = stmt_node.nodes()[1]
-                self.__emit_expression_stmt(expr_node)
-                var_node = stmt_node.nodes()[0]
-                offset = self.__variable_map[var_node.name]
+                # First prepare the content
+                self.__emit_expression_stmt(stmt_node.rhs_expression)
+                offset = self.__variable_map[stmt_node.lhs_expression.name]
                 self.emitter.instruction("mov", "%eax", f"{offset}(%rbp)")
             elif stmt_node.type == ast.BinaryOperatorNode.Type.Addition or stmt_node.type == ast.BinaryOperatorNode.Type.Multiplication:
-                self.__emit_expression_stmt(stmt_node.nodes()[0])
+                self.__emit_expression_stmt(stmt_node.lhs_expression)
                 self.emitter.push_stack("%rax")
-                self.__emit_expression_stmt(stmt_node.nodes()[1])
+                self.__emit_expression_stmt(stmt_node.rhs_expression)
                 self.emitter.pop_stack("%rcx")
                 if stmt_node.type == ast.BinaryOperatorNode.Type.Addition:
                     self.emitter.instruction("add", "%ecx", "%eax")
                 elif stmt_node.type == ast.BinaryOperatorNode.Type.Multiplication:
                     self.emitter.instruction("imul", "%ecx", "%eax")
             else:
-                self.__emit_expression_stmt(stmt_node.nodes()[1])
+                self.__emit_expression_stmt(stmt_node.rhs_expression)
                 self.emitter.push_stack("%rax")
-                self.__emit_expression_stmt(stmt_node.nodes()[0])
+                self.__emit_expression_stmt(stmt_node.lhs_expression)
                 self.emitter.pop_stack("%rcx")
                 if stmt_node.type == ast.BinaryOperatorNode.Type.Subtraction:
                     self.emitter.instruction("sub", "%ecx", "%eax")
@@ -199,36 +193,35 @@ class AsmGenerator:
                     self.emitter.instruction("cdq") # Sign-extend eax to edx:eax (idiv requires signed value)
                     self.emitter.instruction("idiv", "%ecx")
         elif isinstance(stmt_node, ast.LogicOperatorNode):
-            assert(len(stmt_node.nodes()) == 2)
             if stmt_node.type == ast.LogicOperatorNode.Type.Or:
-                self.__emit_expression_stmt(stmt_node.nodes()[0])
+                self.__emit_expression_stmt(stmt_node.lhs_expression)
                 label = self.__generate_label("_clause")
                 self.emitter.instruction("cmp", "$0", "%eax")
                 self.emitter.instruction("je", label)
                 self.emitter.instruction("mov", "$1", "%eax")
                 self.emitter.instruction("jmp", f"{label}_end")
                 self.emitter.label(label)
-                self.__emit_expression_stmt(stmt_node.nodes()[1])
+                self.__emit_expression_stmt(stmt_node.rhs_expression)
                 self.emitter.instruction("cmp", "$0", "%eax")
                 self.emitter.instruction("mov", "$0", "%eax")
                 self.emitter.instruction("setne", "%al")
                 self.emitter.label(f"{label}_end")
             elif stmt_node.type == ast.LogicOperatorNode.Type.And:
-                self.__emit_expression_stmt(stmt_node.nodes()[0])
+                self.__emit_expression_stmt(stmt_node.lhs_expression)
                 label = self.__generate_label("_clause")
                 self.emitter.instruction("cmp", "$0", "%eax")
                 self.emitter.instruction("jne", label)
                 self.emitter.instruction("jmp", f"{label}_end")
                 self.emitter.label(label)
-                self.__emit_expression_stmt(stmt_node.nodes()[1])
+                self.__emit_expression_stmt(stmt_node.rhs_expression)
                 self.emitter.instruction("cmp", "$0", "%eax")
                 self.emitter.instruction("mov", "$0", "%eax")
                 self.emitter.instruction("setne", "%al")
                 self.emitter.label(f"{label}_end")
             else:
-                self.__emit_expression_stmt(stmt_node.nodes()[0])
+                self.__emit_expression_stmt(stmt_node.lhs_expression)
                 self.emitter.push_stack("%rax")
-                self.__emit_expression_stmt(stmt_node.nodes()[1])
+                self.__emit_expression_stmt(stmt_node.rhs_expression)
                 self.emitter.pop_stack("%rcx")
                 self.emitter.instruction("cmp", "%eax", "%ecx")
                 self.emitter.instruction("mov", "$0", "%eax")   # zero-out eax, keep flags
@@ -247,20 +240,16 @@ class AsmGenerator:
                 else:
                     raise AsmGeneratorError(f"Invalid logic operator type {stmt_node.type}")
         elif isinstance(stmt_node, ast.TernaryOperatorNode):
-            logic_expression = stmt_node.nodes()[0]
-            true_expression = stmt_node.nodes()[1]
-            false_expression = stmt_node.nodes()[2]
-
             else_label = self.__generate_label("conditional")
             post_conditional_lbl = self.__generate_label("post_conditional")
 
-            self.__emit_expression_stmt(logic_expression)
+            self.__emit_expression_stmt(stmt_node.condition_expression)
             self.emitter.instruction("cmp", "$0", "%eax")
             self.emitter.instruction("je", else_label)
-            self.__emit_expression_stmt(true_expression)
+            self.__emit_expression_stmt(stmt_node.true_expression)
             self.emitter.instruction("jmp", post_conditional_lbl)
             self.emitter.label(else_label)
-            self.__emit_expression_stmt(false_expression)
+            self.__emit_expression_stmt(stmt_node.false_expression)
             self.emitter.label(post_conditional_lbl)
         else:
             raise AsmGeneratorError(f"Invalid expression {stmt_node} in statement")
