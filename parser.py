@@ -129,17 +129,35 @@ class Parser:
 
         return condition_node
 
+    def __parse_parenthesized_subexpression(self, tokens: List[Token], expression_stack: List[ast.AstNode]):
+        assert(tokens[0].type == TokenType.LeftParenthesis)
+        start = tokens.pop(0) # pop the left parenthesis
+        depth = 1
+        subtokens = []
+        while tokens:
+            if tokens[0].type == TokenType.LeftParenthesis:
+                depth += 1
+            elif tokens[0].type == TokenType.RightParenthesis:
+                depth -= 1
+                if depth == 0:
+                    tokens.pop(0) # pop the final closing parenthesis
+                    break
+
+            subtokens.append(tokens.pop(0))
+
+        if depth != 0:
+            raise ParserError(f'Missing closing parenthesis for opening parenthesis on line {start.line}, char {start.pos}.')
+
+        self.__parse_expression(subtokens, expression_stack)
+
+
     def __parse_expression(self, tokens: List[Token], expression_stack: List[ast.AstNode], operator: ast.AstNode = None):
         # Must be a literal or an unary operator
         if tokens[0].type == TokenType.LeftParenthesis:
-            token = tokens.pop(0) # pop the left parenthesis
-            while tokens[0].type != TokenType.RightParenthesis:
-                self.__parse_expression(tokens, expression_stack)
-            token = tokens.pop(0) # pop the right parenthesis
-            assert(token.type == TokenType.RightParenthesis)
+            self.__parse_parenthesized_subexpression(tokens, expression_stack)
 
         token = None
-        while tokens[0].type != TokenType.RightParenthesis and tokens[0].type != TokenType.NewLine and tokens[0].type != TokenType.Colon:
+        while tokens and tokens[0].type != TokenType.NewLine and tokens[0].type != TokenType.Colon:
             if (not token or token.type != TokenType.Literal) and tokens[0].type.is_unary_operator():
                 token = tokens.pop(0)
                 node = ast.UnaryOperatorNode(token.text)
