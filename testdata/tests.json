@@ -102,5 +102,13 @@
     {
         "test": "ternary-operator",
         "return-code": 2
+    },
+    {
+        "test": "if-block-1",
+        "return-code": 7
+    },
+    {
+        "test": "if-block-2",
+        "return-code": 4
     }
 ]

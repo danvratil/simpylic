@@ -1,0 +1,9 @@
+a = 5
+if a > 5:
+    b = 1
+    c = 2
+else:
+    b = 3
+    c = 4
+
+return b + c

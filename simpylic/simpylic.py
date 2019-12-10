@@ -27,6 +27,7 @@ class Operation(Enum):
     Compile = 1
     Interpret = 2
     DumpAst = 3
+    DumpTokens = 4
 
 
 def run(srcfile: TextIO, outfile: TextIO, operation: Operation):
@@ -34,8 +35,11 @@ def run(srcfile: TextIO, outfile: TextIO, operation: Operation):
         raise RuntimeError("Interpreter mode not yet implemeneted.")
 
     tokens = Tokenizer(srcfile).tokenize()
-    ast = Parser().parse(tokens)
-    if operation == Operation.DumpAst:
-        AstDumper().dump(ast)
-    elif operation == Operation.Compile:
-        AsmGenerator(outfile).generate(ast)
+    if operation == Operation.DumpTokens:
+        print(tokens)
+    else:
+        ast = Parser().parse(tokens)
+        if operation == Operation.DumpAst:
+            AstDumper().dump(ast)
+        elif operation == Operation.Compile:
+            AsmGenerator(outfile).generate(ast)

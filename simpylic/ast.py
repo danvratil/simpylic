@@ -22,7 +22,7 @@ class AstError(RuntimeError):
 
 class AstNode:
     def traverse(self, depth: int):
-        print(' ' * depth, self, sep='')
+        print(' ' * (depth * 2), self, sep='')
 
 class ProgramNode(AstNode):
     def __init__(self):
@@ -50,6 +50,21 @@ class FunctionNode(AstNode):
         super().traverse(depth)
         for node in self.statements:
             node.traverse(depth + 1)
+
+
+class BlockNode(AstNode):
+    def __init__(self, creates_scope: bool):
+        self.creates_scope = creates_scope
+        self.statements = [] # type: List[AstNode]
+
+    def __repr__(self):
+        return f"BlockNode(creates_scope={self.creates_scope})"
+
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        for node in self.statements:
+            node.traverse(depth + 1)
+
 
 class ReturnStmtNode(AstNode):
     def __init__(self):
@@ -179,7 +194,7 @@ class IfStatementNode(AstNode):
     def __init__(self):
         super().__init__()
         self.condition_expression = None # type: AstNode
-        self.true_statement = None # type: AstNode
+        self.true_block = None # type: BlockNode
 
     def __repr__(self):
         return "IfStatementNode()"
@@ -187,13 +202,13 @@ class IfStatementNode(AstNode):
     def traverse(self, depth: int):
         super().traverse(depth)
         self.condition_expression.traverse(depth + 1)
-        self.true_statement.traverse(depth + 1)
+        self.true_block.traverse(depth + 1)
 
 class ElifStatementNode(AstNode):
     def __init__(self):
         super().__init__()
         self.condition_expression = None # type: AstNode
-        self.true_statement = None # type: AstNode
+        self.true_block = None # type: BlockNode
 
     def __repr__(self):
         return "ElifStatementNode()"
@@ -201,26 +216,26 @@ class ElifStatementNode(AstNode):
     def traverse(self, depth: int):
         super().traverse(depth)
         self.condition_expression.traverse(depth + 1)
-        self.true_statement.traverse(depth + 1)
+        self.true_block.traverse(depth + 1)
 
 class ElseStatementNode(AstNode):
     def __init__(self):
         super().__init__()
-        self.false_statement = None # type: AstNode
+        self.false_block = None # type: BlockNode
 
     def __repr__(self):
         return "ElseStatementNode()"
 
     def traverse(self, depth: int):
         super().traverse(depth)
-        self.false_statement.traverse(depth + 1)
+        self.false_block.traverse(depth + 1)
 
 class TernaryOperatorNode(AstNode):
     def __init__(self):
         super().__init__()
         self.condition_expression = None # type: AstNode
-        self.true_expression = None # type: AstNode
-        self.false_expression = None # type: AstNode
+        self.true_statement = None # type: AstNode
+        self.false_statement = None # type: AstNode
 
     def __repr__(self):
         return "TernaryOperatorNode()"
@@ -228,8 +243,8 @@ class TernaryOperatorNode(AstNode):
     def traverse(self, depth: int):
         super().traverse(depth)
         self.condition_expression.traverse(depth + 1)
-        self.true_expression.traverse(depth + 1)
-        self.false_expression.traverse(depth + 1)
+        self.true_statement.traverse(depth + 1)
+        self.false_statement.traverse(depth + 1)
 
 class AstDumper:
     @staticmethod

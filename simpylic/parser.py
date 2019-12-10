@@ -27,7 +27,8 @@ class ParserError(Exception):
 class Parser:
     def __init__(self):
         self.__variables = []
-
+        self.__indentation_level = 0
+        self.__line_indentation = 0
 
     def parse(self, tokens: List[Token]):
         root = ast.ProgramNode()
@@ -42,14 +43,21 @@ class Parser:
         return root
 
 
-    @staticmethod
-    def __pop_newlines(tokens: List[Token]):
+    def __pop_newlines(self, tokens: List[Token]):
         while tokens and tokens[0].type == TokenType.NewLine:
             tokens.pop(0)
-
+        if tokens and tokens[0].type == TokenType.Whitespace:
+            self.__line_indentation = len(tokens[0].text)
+        else:
+            self.__line_indentation = 0
 
     def __parse_statement(self, tokens: List[Token]):
         peek_token = tokens[0]
+        if peek_token.type == TokenType.Whitespace:
+            self.__line_indentation = len(peek_token.text)
+            tokens.pop(0)
+            peek_token = tokens[0]
+
         if peek_token.type == TokenType.KeywordReturn:
             return self.__parse_return_stmt(tokens)
         if peek_token.type == TokenType.KeywordIf:
@@ -83,7 +91,6 @@ class Parser:
     def __parse_if_statement(self, tokens: List[Token]):
         condition_node = ast.ConditionNode()
 
-
         def parse_if(self, tokens: List[Token]):
             assert tokens[0].type == TokenType.KeywordIf
             tokens.pop(0) # pop the 'if' keyword
@@ -96,7 +103,7 @@ class Parser:
             assert tokens[0].type == TokenType.Colon
             tokens.pop(0) # pop the colon
             self.__pop_newlines(tokens)
-            if_node.true_statement = self.__parse_statement(tokens)
+            if_node.true_block = self.__parse_block(tokens)
             return if_node
 
 
@@ -108,7 +115,7 @@ class Parser:
             self.__pop_newlines(tokens)
 
             else_node = ast.ElseStatementNode()
-            else_node.false_statement = self.__parse_statement(tokens)
+            else_node.false_block = self.__parse_block(tokens)
             return else_node
 
 
@@ -124,17 +131,16 @@ class Parser:
             assert tokens[0].type == TokenType.Colon
             tokens.pop(0) # pop the colon
             self.__pop_newlines(tokens)
-            elif_node.true_statement = self.__parse_statement(tokens)
+            elif_node.true_block = self.__parse_block(tokens)
             return elif_node
 
+        indentation = self.__line_indentation
         condition_node.if_condition = parse_if(self, tokens)
-
         while True:
             self.__pop_newlines(tokens)
-
-            if tokens[0].type == TokenType.KeywordElif:
+            if tokens[0].type == TokenType.KeywordElif and self.__line_indentation == indentation:
                 condition_node.elif_conditions.append(parse_elif(self, tokens))
-            elif tokens[0].type == TokenType.KeywordElse:
+            elif tokens[0].type == TokenType.KeywordElse and self.__line_indentation == indentation:
                 condition_node.else_condition = parse_else(self, tokens)
                 break # nothing may follow else
             else:
@@ -174,6 +180,26 @@ class Parser:
 
         return token
 
+
+    def __parse_block(self, tokens: List[Token]):
+        block = ast.BlockNode(creates_scope=False)
+        assert tokens[0].type == TokenType.Whitespace
+        indentation = len(tokens[0].text)
+        if indentation <= self.__indentation_level:
+            raise ParserError(f'Invalid indentation on line {tokens[0].line}.')
+        prev_level = self.__indentation_level
+        self.__indentation_level = indentation
+        while len(tokens[0].text) == indentation:
+            assert tokens[0].type == TokenType.Whitespace
+            tokens.pop(0) # pop the indentation token
+            block.statements.append(self.__parse_statement(tokens))
+            self.__pop_newlines(tokens)
+            if not tokens or tokens[0].type != TokenType.Whitespace:
+                break
+
+        self.__indentation_level = prev_level
+
+        return block
 
     def __parse_identifier(self, tokens: List[Token], expression_stack: List[ast.AstNode]):
         def parse_assignment(self, var_token: Token, tokens: List[Token],

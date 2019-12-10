@@ -21,7 +21,7 @@ from enum import Enum, auto
 
 class TokenType(Enum):
     Unknown = auto()
-    Whitespace = auto()
+    Whitespace = auto() # Only considered for indentation
     NewLine = auto()
     Literal = auto()
     Identifier = auto()
@@ -157,12 +157,22 @@ class Tokenizer:
         char_iter = itertools.chain.from_iterable(self.source)
         char = next(char_iter, None)
         while char is not None:
-            # We ignore whitespaces for now
-            if char in  (' ', '\t'):
-                self.__pos += 1
+            if char in (' ', '\t'):
+                if self.__pos == 1:
+                    token_text = char
+                    while True:
+                        char = next(char_iter, None)
+                        if not char or char not in (' ', '\t'):
+                            break
+                        token_text += char
+                    self.__tokens.append(Token(token_text, TokenType.Whitespace, **self.__token_pos()))
+                    self.__pos += len(token_text)
+                    continue
+                else:
+                    self.__pos += 1
             elif char == '\n':
                 self.__tokens.append(Token(char, TokenType.NewLine, **self.__token_pos()))
-                self.__pos = 0
+                self.__pos = 1
                 self.__line += 1
             elif char == ':':
                 self.__tokens.append(Token(char, TokenType.Colon, **self.__token_pos()))

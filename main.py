@@ -32,6 +32,8 @@ def main():
                        help='Interpret the program.')
     group.add_argument('-a', dest='dump_ast', action='store_true',
                        help='Dump the AST and exit.')
+    group.add_argument('-t', dest='dump_tokens', action='store_true',
+                       help='Dump tokenizer output and exit.')
 
     args = parser.parse_args()
 
@@ -40,6 +42,8 @@ def main():
         with stdout if is_stdout else open(args.output, 'w', encoding='utf-8') as outfile:
             if args.dump_ast:
                 operation = simpylic.Operation.DumpAst
+            elif args.dump_tokens:
+                operation = simpylic.Operation.DumpTokens
             elif args.compile:
                 operation = simpylic.Operation.Compile
             else:

@@ -109,6 +109,10 @@ class AsmGenerator:
         self.__last_label_id += 1
         return label
 
+    def __process_block(self, block_node: ast.BlockNode):
+        for stmt in block_node.statements:
+            self.emit_statement_asm(stmt)
+
     def __emit_return_stmt_asm(self, ret_node: ast.AstNode):
         self.__emit_expression_stmt(ret_node.expression)
 
@@ -133,7 +137,7 @@ class AsmGenerator:
             else:
                 cond_label = self.__generate_label("cond")
                 self.emitter.instruction("je", cond_label)
-            self.emit_statement_asm(node.true_statement)
+            self.__process_block(node.true_block)
             self.emitter.instruction("jmp", post_conditional_lbl)
             return cond_label
 
@@ -148,7 +152,7 @@ class AsmGenerator:
 
         if cond_node.else_condition:
             self.emitter.label(cond_label)
-            self.emit_statement_asm(cond_node.else_condition.false_statement)
+            self.__process_block(cond_node.else_condition.false_block)
 
         # End of the entire if statement
         self.emitter.label(post_conditional_lbl)
