@@ -27,6 +27,7 @@ class Parser:
     def __init__(self):
         pass
 
+
     def parse(self, tokens: List[Token]):
         self.__variables = []
 
@@ -40,6 +41,7 @@ class Parser:
                 main.statements.append(stmt_node)
 
         return root
+
 
     def __parse_statement(self, tokens: List[Token]):
         peek_token = tokens[0]
@@ -58,6 +60,7 @@ class Parser:
         else:
             raise ParserError(f'Unexpected statement identifier {tokens[0]}')
 
+
     def __parse_return_stmt(self, tokens: List[Token]):
         token = tokens.pop(0)
         assert(token.type == TokenType.KeywordReturn)
@@ -70,6 +73,7 @@ class Parser:
         stmt_node.expression = expression_stack.pop(0)
 
         return stmt_node
+
 
     def __parse_if_statement(self, tokens: List[Token]):
         condition_node = ast.ConditionNode()
@@ -89,6 +93,7 @@ class Parser:
             if_node.true_statement = self.__parse_statement(tokens)
             return if_node
 
+
         def parse_else(self, tokens: List[Token]):
             assert(tokens[0].type == TokenType.KeywordElse)
             tokens.pop(0) # pop the 'else' keyword
@@ -99,6 +104,7 @@ class Parser:
             else_node = ast.ElseStatementNode()
             else_node.false_statement = self.__parse_statement(tokens)
             return else_node
+
 
         def parse_elif(self, tokens: List[Token]):
             assert(tokens[0].type == TokenType.KeywordElif)
@@ -130,6 +136,7 @@ class Parser:
 
         return condition_node
 
+
     def __parse_parenthesized_subexpression(self, tokens: List[Token], expression_stack: List[ast.AstNode]):
         assert(tokens[0].type == TokenType.LeftParenthesis)
         start = tokens.pop(0) # pop the left parenthesis
@@ -152,6 +159,95 @@ class Parser:
         self.__parse_expression(subtokens, expression_stack)
 
 
+    def __parse_literal(self, tokens: List[Token], expression_stack: List[ast.AstNode]):
+        token = tokens.pop(0)
+        expression_stack.append(ast.ConstantNode(type='int', value=int(token.text)))
+
+        return token
+
+
+    def __parse_identifier(self, tokens: List[Token], expression_stack: List[ast.AstNode]):
+        def parse_assignment(self, var_token: Token, tokens: List[Token], expression_stack: List[ast.AstNode]):
+            if token.text not in self.__variables:
+                node = ast.DeclarationNode(name=token.text)
+                tokens.pop(0) # eat the '=' operator
+                self.__parse_expression(tokens, expression_stack)
+                node.init_expression = expression_stack.pop(0)
+                self.__variables.append(token.text)
+            else:
+                node = ast.VariableNode(name=token.text)
+
+            return node
+
+        token = tokens.pop(0)
+        if tokens and tokens[0].type == TokenType.Assignment:
+            node = parse_assignment(self, token, tokens, expression_stack)
+        else:
+            if not token.text in self.__variables:
+                raise ParserError(f"Undefined variable {token.text}")
+            else:
+                node = ast.VariableNode(name=token.text)
+
+        expression_stack.append(node)
+
+        return token
+
+
+    def __parse_bound_unary_operator(self, tokens: List[Token], expression_stack: List[ast.AstNode]):
+        operator_token = tokens.pop(0)
+        node = ast.UnaryOperatorNode(operator_token.text)
+        self.__parse_expression(tokens, expression_stack)
+        node.expression = expression_stack.pop(0)
+
+        expression_stack.append(node)
+
+        return operator_token
+
+
+    def __parse_binary_operator(self, tokens: List[Token], expression_stack: List[ast.AstNode]):
+        operator_token = tokens.pop(0)
+        node = ast.BinaryOperatorNode(operator_token.text)
+        node.lhs_expression = expression_stack.pop(0)
+
+        self.__parse_expression(tokens, expression_stack, operator_token)
+        node.rhs_expression = expression_stack.pop(0)
+
+        expression_stack.append(node)
+
+        return operator_token
+
+
+    def __parse_logic_operator(self, tokens: List[Token], expression_stack: List[ast.AstNode]):
+        operator_token = tokens.pop(0)
+        node = ast.LogicOperatorNode(operator_token.text)
+        node.lhs_expression = expression_stack.pop(0)
+
+        self.__parse_expression(tokens, expression_stack, operator_token)
+        node.rhs_expression = expression_stack.pop(0)
+
+        expression_stack.append(node)
+
+        return operator_token
+
+
+    def __parse_ternary_operator(self, tokens: List[Token], expression_stack: List[ast.AstNode]):
+        operator_token = tokens.pop(0)
+        node = ast.TernaryOperatorNode()
+        node.condition_expression = expression_stack.pop(0)
+
+        self.__parse_expression(tokens, expression_stack)
+        node.true_expression = expression_stack.pop(0)
+        assert(tokens[0].type == TokenType.Colon)
+        tokens.pop(0) # pop colon
+
+        self.__parse_expression(tokens, expression_stack)
+        node.false_expression = expression_stack.pop(0)
+
+        expression_stack.append(node)
+
+        return operator_token
+
+
     def __parse_expression(self, tokens: List[Token], expression_stack: List[ast.AstNode], operator: ast.AstNode = None):
         # Must be a literal or an unary operator
         if tokens[0].type == TokenType.LeftParenthesis:
@@ -160,65 +256,19 @@ class Parser:
         token = None
         while tokens and tokens[0].type != TokenType.NewLine and tokens[0].type != TokenType.Colon:
             if (not token or token.type != TokenType.Literal) and tokens[0].type.is_unary_operator():
-                token = tokens.pop(0)
-                node = ast.UnaryOperatorNode(token.text)
-                self.__parse_expression(tokens, expression_stack)
-                node.expression = expression_stack.pop(0)
-                expression_stack.append(node)
+                token = self.__parse_bound_unary_operator(tokens, expression_stack)
             elif tokens[0].type == TokenType.Literal:
-                token = tokens.pop(0)
-                expression_stack.append(ast.ConstantNode(type='int', value=int(token.text)))
+                token = self.__parse_literal(tokens, expression_stack)
             elif tokens[0].type == TokenType.Identifier:
-                token = tokens.pop(0)
-                if tokens and tokens[0].type == TokenType.Assignment:
-                    if token.text not in self.__variables:
-                        node = ast.DeclarationNode(name=token.text)
-                        tokens.pop(0) # eat the '=' operator
-                        self.__parse_expression(tokens, expression_stack)
-                        node.init_expression = expression_stack.pop(0)
-                        self.__variables.append(token.text)
-                    else:
-                        node = ast.VariableNode(name=token.text)
-                else:
-                    if not token.text in self.__variables:
-                        raise ParserError(f"Undefined variable {token.text}")
-                    else:
-                        node = ast.VariableNode(name=token.text)
-                expression_stack.append(node)
-
+                token = self.__parse_identifier(tokens, expression_stack)
             elif tokens[0].type.is_binary_operator() or tokens[0].type.is_logic_operator() or tokens[0].type.is_ternary_operator():
                 if operator and operator.type.priority() < tokens[0].type.priority():
                     return
 
                 if tokens[0].type.is_binary_operator():
-                    operator_token = tokens.pop(0)
-                    node = ast.BinaryOperatorNode(operator_token.text)
-                    node.lhs_expression = expression_stack.pop(0)
-
-                    self.__parse_expression(tokens, expression_stack, operator_token)
-                    node.rhs_expression = expression_stack.pop(0)
-
-                    expression_stack.append(node)
+                    token = self.__parse_binary_operator(tokens, expression_stack)
                 elif tokens[0].type.is_logic_operator():
-                    operator_token = tokens.pop(0)
-                    node = ast.LogicOperatorNode(operator_token.text)
-                    node.lhs_expression = expression_stack.pop(0)
-
-                    self.__parse_expression(tokens, expression_stack, operator_token)
-                    node.rhs_expression = expression_stack.pop(0)
-
-                    expression_stack.append(node)
+                    token = self.__parse_logic_operator(tokens, expression_stack)
                 elif tokens[0].type.is_ternary_operator():
-                    operator_token = tokens.pop(0)
-                    node = ast.TernaryOperatorNode()
-                    node.condition_expression = expression_stack.pop(0)
+                    token = self.__parse_ternary_operator(tokens, expression_stack)
 
-                    self.__parse_expression(tokens, expression_stack)
-                    node.true_expression = expression_stack.pop(0)
-                    assert(tokens[0].type == TokenType.Colon)
-                    tokens.pop(0) # pop colon
-
-                    self.__parse_expression(tokens, expression_stack)
-                    node.false_expression = expression_stack.pop(0)
-
-                    expression_stack.append(node)
