@@ -50,6 +50,7 @@ class TokenType(Enum):
     KeywordIf = auto()
     KeywordElif = auto()
     KeywordElse = auto()
+    KeywordWhile = auto()
 
     Colon = auto()
 
@@ -139,7 +140,8 @@ class Tokenizer:
                   'or': TokenType.KeywordOr,
                   'if': TokenType.KeywordIf,
                   'elif': TokenType.KeywordElif,
-                  'else': TokenType.KeywordElse
+                  'else': TokenType.KeywordElse,
+                  'while': TokenType.KeywordWhile
                  }
 
     def __init__(self, source: TextIO):

@@ -110,5 +110,13 @@
     {
         "test": "if-block-2",
         "return-code": 4
+    },
+    {
+        "test": "while-loop-1",
+        "return-code": 10
+    },
+    {
+        "test": "while-loop-2",
+        "return-code": 55
     }
 ]

@@ -62,6 +62,8 @@ class Parser:
             return self.__parse_return_stmt(tokens)
         if peek_token.type == TokenType.KeywordIf:
             return self.__parse_if_statement(tokens)
+        if peek_token.type == TokenType.KeywordWhile:
+            return self.__parse_while_statement(tokens)
         if peek_token.type == TokenType.Identifier:
             expression_stack = []
             self.__parse_expression(tokens, expression_stack)
@@ -86,6 +88,24 @@ class Parser:
         stmt_node.expression = expression_stack.pop(0)
 
         return stmt_node
+
+
+    def __parse_while_statement(self, tokens: List[Token]):
+        assert tokens[0].type == TokenType.KeywordWhile
+        tokens.pop(0) # pop the 'while' keyword
+
+        while_node = ast.WhileNode()
+        expression_stack = []
+        self.__parse_expression(tokens, expression_stack)
+        assert len(expression_stack) == 1
+        while_node.condition_expression = expression_stack.pop(0)
+        assert tokens[0].type == TokenType.Colon
+        tokens.pop(0)  # pop the colon
+        self.__pop_newlines(tokens)
+
+        while_node.body = self.__parse_block(tokens)
+
+        return while_node
 
 
     def __parse_if_statement(self, tokens: List[Token]):

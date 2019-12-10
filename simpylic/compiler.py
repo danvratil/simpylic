@@ -101,6 +101,8 @@ class AsmGenerator:
             self.__emit_declaration_asm(stmt_node)
         elif isinstance(stmt_node, ast.ConditionNode):
             self.__emit_condition_asm(stmt_node)
+        elif isinstance(stmt_node, ast.WhileNode):
+            self.__emit_while_loop_asm(stmt_node)
         else:
             self.__emit_expression_stmt(stmt_node)
 
@@ -156,6 +158,21 @@ class AsmGenerator:
 
         # End of the entire if statement
         self.emitter.label(post_conditional_lbl)
+
+
+    def __emit_while_loop_asm(self, stmt_node: ast.WhileNode):
+        start_label = self.__generate_label("loop_start")
+        end_label = self.__generate_label("loop_end")
+
+        self.emitter.label(start_label)
+        self.__emit_expression_stmt(stmt_node.condition_expression)
+        self.emitter.instruction("cmpl", "$0", "%eax")
+        self.emitter.instruction("je", end_label)
+
+        self.__process_block(stmt_node.body)
+        self.emitter.instruction("jmp", start_label)
+
+        self.emitter.label(end_label)
 
 
     def __emit_constant_value(self, stmt_node: ast.ConstantNode):

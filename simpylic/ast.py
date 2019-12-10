@@ -246,6 +246,20 @@ class TernaryOperatorNode(AstNode):
         self.true_statement.traverse(depth + 1)
         self.false_statement.traverse(depth + 1)
 
+class WhileNode(AstNode):
+    def __init__(self):
+        super().__init__()
+        self.condition_expression = None # type: AstNode
+        self.body = None # type: BlockNode
+
+    def __repr__(self):
+        return "WhileNode()"
+
+    def traverse(self, depth: int):
+        super().traverse(depth)
+        self.condition_expression.traverse(depth + 1)
+        self.body.traverse(depth + 1)
+
 class AstDumper:
     @staticmethod
     def dump(node: AstNode, depth: int = 0):
