@@ -1,5 +1,4 @@
 import json
-import tempfile
 import subprocess
 import os
 from io import StringIO
@@ -23,18 +22,20 @@ def main():
         with open(testfile, encoding='utf-8') as src:
             Simpylic.run(src, buffer, Simpylic.Operation.Compile)
         buffer.seek(0)
-        p = subprocess.Popen(['gcc', '-x', 'assembler', '-', '-o', '/tmp/simpylic-test-out'], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate(input = buffer.getvalue().encode('utf-8'))
-        p.stdin.close()
-        result = p.wait()
+        compiler = subprocess.Popen(['gcc', '-x', 'assembler', '-', '-o', '/tmp/simpylic-test-out'],
+                                    stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = compiler.communicate(input=buffer.getvalue().encode('utf-8'))
+        compiler.stdin.close()
+        result = compiler.wait()
         if result != 0:
             raise RuntimeError(f'gcc error {result}: {err}')
 
         log('running...')
-        p = subprocess.Popen('/tmp/simpylic-test-out')
-        result = p.wait()
+        program = subprocess.Popen('/tmp/simpylic-test-out')
+        result = program.wait()
         if result != int(test['return-code']) % 256:
-            raise RuntimeError(f'The utility finished with return code {result} does not match the expected result {test["return-code"]}')
+            raise RuntimeError(f'The utility finished with return code {result} does not match ' \
+                                'the expected result {test["return-code"]}')
 
         log('OK.\n')
 

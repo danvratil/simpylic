@@ -63,8 +63,8 @@ class ReturnStmtNode(AstNode):
         self.expression.traverse(depth + 1)
 
 class ConstantNode(AstNode):
-    def __init__(self, type: str, value: any):
-        self.type = type
+    def __init__(self, value_type: str, value: any):
+        self.type = value_type
         self.value = value
 
     def __repr__(self):
@@ -76,9 +76,9 @@ class UnaryOperatorNode(AstNode):
         BitwiseComplement = '~'
         LogicalNegation = '!'
 
-    def __init__(self, type: Type):
+    def __init__(self, operator_type: Type):
         super().__init__()
-        self.type = UnaryOperatorNode.Type(type)
+        self.type = UnaryOperatorNode.Type(operator_type)
         self.expression = None # type: AstNode
 
     def __repr__(self):
@@ -96,9 +96,9 @@ class BinaryOperatorNode(AstNode):
         Division = '/'
         Assignment = '='
 
-    def __init__(self, type: Type):
+    def __init__(self, operator_type: Type):
         super().__init__()
-        self.type = BinaryOperatorNode.Type(type)
+        self.type = BinaryOperatorNode.Type(operator_type)
         self.lhs_expression = None # type: AstNode
         self.rhs_expression = None # type: AstNode
 
@@ -121,9 +121,9 @@ class LogicOperatorNode(AstNode):
         And = 'and'
         Or = 'or'
 
-    def __init__(self, type: Type):
+    def __init__(self, operator_type: Type):
         super().__init__()
-        self.type = LogicOperatorNode.Type(type)
+        self.type = LogicOperatorNode.Type(operator_type)
         self.lhs_expression = None # type: AstNode
         self.rhs_expression = None # type: AstNode
 
@@ -233,5 +233,5 @@ class TernaryOperatorNode(AstNode):
 
 class AstDumper:
     @staticmethod
-    def dump(node: AstNode, depth: int = 0, step: int = 2):
+    def dump(node: AstNode, depth: int = 0):
         node.traverse(depth)

@@ -16,10 +16,10 @@
 """
 
 import unittest
-from ddt import ddt, data, unpack
 from io import StringIO
+from ddt import ddt, data, unpack
 
-from tokenizer import Tokenizer, Token, TokenType
+from simpylic.tokenizer import Tokenizer, Token, TokenType
 
 @ddt
 class TestTokenizer(unittest.TestCase):

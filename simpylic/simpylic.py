@@ -15,18 +15,19 @@
  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from enum import Enum
+from typing import TextIO
+
 from .tokenizer import Tokenizer
 from .parser import Parser
 from .compiler import AsmGenerator
 from .ast import AstDumper
 
-from enum import Enum
-from typing import TextIO
-
 class Operation(Enum):
     Compile = 1
     Interpret = 2
     DumpAst = 3
+
 
 def run(srcfile: TextIO, outfile: TextIO, operation: Operation):
     if operation == Operation.Interpret:
@@ -38,4 +39,3 @@ def run(srcfile: TextIO, outfile: TextIO, operation: Operation):
         AstDumper().dump(ast)
     elif operation == Operation.Compile:
         AsmGenerator(outfile).generate(ast)
-

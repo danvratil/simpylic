@@ -56,7 +56,8 @@ class TokenType(Enum):
     __unary_operators = [Minus, Tilde, Negation]
     __binary_operators = [Plus, Minus, Star, Slash, Assignment]
     __ternary_operators = [QuestionMark, Colon]
-    __logic_operators = [LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual, Equals, NotEquals, KeywordAnd, KeywordOr]
+    __logic_operators = [LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual, Equals, \
+                         NotEquals, KeywordAnd, KeywordOr]
 
     def is_unary_operator(self):
         return self.value in TokenType.__unary_operators.value
@@ -73,30 +74,26 @@ class TokenType(Enum):
     def priority(self):
         if self.is_unary_operator():
             return 100
-        elif self.is_logic_operator():
-            if self == TokenType.KeywordAnd or self == TokenType.KeywordOr:
-                return 90
-            else:
-                return 80
-        elif self.is_binary_operator():
-            if self == TokenType.Assignment:
-                return 95
-            else:
-                return 80
-        elif self.is_ternary_operator():
+        if self.is_logic_operator():
+            return 90 if self in (TokenType.KeywordAnd, TokenType.KeywordOr) else 80
+        if self.is_binary_operator():
+            return 95 if self == TokenType.Assignment else 80
+        if self.is_ternary_operator():
             return 92
-        else:
-            return 1
+
+        return 1
+
 
 class Token:
-    def __init__(self, text: str, type: TokenType, line: int, pos: int):
-        self.type = type
+    def __init__(self, text: str, token_type: TokenType, line: int, pos: int):
+        self.type = token_type
         self.line = line
         self.pos = pos
         self.text = text
 
     def __repr__(self):
-        return f"Token(type={self.type}, priority={self.type.priority()}, text=\"{self.text}\", line={self.line}, pos={self.pos})"
+        return f"Token(type={self.type}, priority={self.type.priority()}, text=\"{self.text}\", " \
+               f"line={self.line}, pos={self.pos})"
 
     def __eq__(self, other):
         return self.type == other.type \
@@ -106,6 +103,7 @@ class Token:
 
 class TokenizerError(Exception):
     def __init__(self, what, line, pos):
+        super().__init__(self, what)
         self.what = what
         self.line = line
         self.pos = pos
@@ -115,106 +113,109 @@ class TokenizerError(Exception):
 
 class Tokenizer:
 
-    __operators = [ '+', '-', '*', '/', '~', '!', '<', '>', '(', ')', '=', '?' ]
+    __operators = ['+', '-', '*', '/', '~', '!', '<', '>', '(', ')', '=', '?']
 
-    __single_operators = { '+': TokenType.Plus,
-                           '-': TokenType.Minus,
-                           '*': TokenType.Star,
-                           '/': TokenType.Slash,
-                           '~': TokenType.Tilde,
-                           '!': TokenType.Negation,
-                           '(': TokenType.LeftParenthesis,
-                           ')': TokenType.RightParenthesis,
-                           '?': TokenType.QuestionMark
+    __single_operators = {'+': TokenType.Plus,
+                          '-': TokenType.Minus,
+                          '*': TokenType.Star,
+                          '/': TokenType.Slash,
+                          '~': TokenType.Tilde,
+                          '!': TokenType.Negation,
+                          '(': TokenType.LeftParenthesis,
+                          ')': TokenType.RightParenthesis,
+                          '?': TokenType.QuestionMark
                          }
-    __long_operators = { '==': TokenType.Equals,
-                         '!=': TokenType.NotEquals,
-                         '<' : TokenType.LessThan,
-                         '>=': TokenType.GreaterThanOrEqual,
-                         '<=': TokenType.LessThanOrEqual,
-                         '>' : TokenType.GreaterThan,
-                         '=' : TokenType.Assignment
+    __long_operators = {'==': TokenType.Equals,
+                        '!=': TokenType.NotEquals,
+                        '<' : TokenType.LessThan,
+                        '>=': TokenType.GreaterThanOrEqual,
+                        '<=': TokenType.LessThanOrEqual,
+                        '>' : TokenType.GreaterThan,
+                        '=' : TokenType.Assignment
                        }
 
-    __keywords = { 'return': TokenType.KeywordReturn,
-                   'and': TokenType.KeywordAnd,
-                   'or': TokenType.KeywordOr,
-                   'if': TokenType.KeywordIf,
-                   'elif': TokenType.KeywordElif,
-                   'else': TokenType.KeywordElse
+    __keywords = {'return': TokenType.KeywordReturn,
+                  'and': TokenType.KeywordAnd,
+                  'or': TokenType.KeywordOr,
+                  'if': TokenType.KeywordIf,
+                  'elif': TokenType.KeywordElif,
+                  'else': TokenType.KeywordElse
                  }
 
     def __init__(self, source: TextIO):
         self.source = source
+        self.__line = 1
+        self.__pos = 1
+        self.__token_text = ''
+        self.__tokens = []
 
     def __token_pos(self):
         return {'line': self.__line,
                 'pos': self.__pos - len(self.__token_text)}
 
     def tokenize(self):
-        self.__line = 1
-        self.__pos = 1
-        self.__token_text = ''
-        self.__tokens = []
-
         char_iter = itertools.chain.from_iterable(self.source)
-        c = next(char_iter, None)
-        while c is not None:
+        char = next(char_iter, None)
+        while char is not None:
             # We ignore whitespaces for now
-            if c == ' ' or c == '\t':
+            if char in  (' ', '\t'):
                 self.__pos += 1
-            elif c == '\n':
-                self.__tokens.append(Token(text=c, type=TokenType.NewLine, **self.__token_pos()))
+            elif char == '\n':
+                self.__tokens.append(Token(char, TokenType.NewLine, **self.__token_pos()))
                 self.__pos = 0
                 self.__line += 1
-            elif c == ':':
-                self.__tokens.append(Token(text=c, type=TokenType.Colon, **self.__token_pos()))
+            elif char == ':':
+                self.__tokens.append(Token(char, TokenType.Colon, **self.__token_pos()))
                 self.__pos += 1
-            elif c in Tokenizer.__operators:
-                if c in Tokenizer.__single_operators:
-                    self.__tokens.append(Token(text=c, type=Tokenizer.__single_operators[c], **self.__token_pos()))
+            elif char in Tokenizer.__operators:
+                if char in Tokenizer.__single_operators:
+                    self.__tokens.append(Token(char, Tokenizer.__single_operators[char],
+                                               **self.__token_pos()))
                     self.__pos += 1
                 else:
-                    token_text = c
+                    token_text = char
                     while True:
-                        c = next(char_iter, None)
-                        if not c or c not in Tokenizer.__operators:
+                        char = next(char_iter, None)
+                        if not char or char not in Tokenizer.__operators:
                             break
-                        token_text += c
+                        token_text += char
                     if token_text in Tokenizer.__long_operators:
-                        self.__tokens.append(Token(text=token_text, type=Tokenizer.__long_operators[token_text], **self.__token_pos()))
+                        self.__tokens.append(Token(token_text,
+                                                   Tokenizer.__long_operators[token_text],
+                                                   **self.__token_pos()))
                         self.__pos += len(token_text)
                     else:
-                        raise TokenizerError(f"Unknown operator '{token_text}'", **self.__token_pos())
+                        raise TokenizerError(f"Unknown operator '{token_text}'",
+                                             **self.__token_pos())
                     continue
-            elif c.isalpha():
-                token_text = c
+            elif char.isalpha():
+                token_text = char
                 while True:
-                    c = next(char_iter, None)
-                    if not c or not c.isalpha() and not c.isdigit() and not c == '_':
+                    char = next(char_iter, None)
+                    if not char or not char.isalpha() and not char.isdigit() and not char == '_':
                         break
-                    token_text += c
+                    token_text += char
                 if token_text in Tokenizer.__keywords:
                     token_type = Tokenizer.__keywords[token_text]
                 else:
                     token_type = TokenType.Identifier
-                self.__tokens.append(Token(text=token_text, type=token_type, **self.__token_pos()))
+                self.__tokens.append(Token(token_text, token_type, **self.__token_pos()))
                 self.__pos += len(token_text)
                 continue
-            elif c.isdigit():
-                token_text = c
+            elif char.isdigit():
+                token_text = char
                 while True:
-                    c = next(char_iter, None)
-                    if not c or not c.isdigit():
+                    char = next(char_iter, None)
+                    if not char or not char.isdigit():
                         break
-                    token_text +=c
-                self.__tokens.append(Token(text=token_text, type=TokenType.Literal, **self.__token_pos()))
+                    token_text += char
+                self.__tokens.append(Token(text=token_text, token_type=TokenType.Literal,
+                                           **self.__token_pos()))
                 self.__pos += len(token_text)
                 continue
             else:
-                raise TokenizerError(f"Invalid token '{c}'", **self.__token_pos())
+                raise TokenizerError(f"Invalid token '{char}'", **self.__token_pos())
 
-            c = next(char_iter, None)
+            char = next(char_iter, None)
 
         return self.__tokens
-

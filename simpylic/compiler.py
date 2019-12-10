@@ -15,8 +15,9 @@
  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from . import ast
 from typing import TextIO
+
+from . import ast
 
 class AsmGeneratorError(Exception):
     pass
@@ -30,7 +31,7 @@ class AsmEmitter:
         def __enter__(self):
             self._emitter.begin_function(self._name)
 
-        def __exit__(self, type, value, traceback):
+        def __exit__(self, _type, value, traceback):
             self._emitter.end_function()
 
     def __init__(self, output: TextIO):
@@ -49,7 +50,7 @@ class AsmEmitter:
         self.instruction("movq", "%rsp", "%rbp")
 
     def end_function(self):
-        self.instruction("movq" ,"%rbp", "%rsp")
+        self.instruction("movq", "%rbp", "%rsp")
         self.instruction("popq", "%rbp")
         self.instruction("ret")
         self._depth -= 1
@@ -76,12 +77,12 @@ class AsmEmitter:
 class AsmGenerator:
     def __init__(self, output: TextIO):
         self.emitter = AsmEmitter(output)
-        self.__lastLabelId = 0
-
-    def generate(self, ast: ast.AstNode):
+        self.__last_label_id = 0
         self.__stack_index = 0
         self.__variable_map = {}
-        self.emit_program_asm(ast)
+
+    def generate(self, program_node: ast.ProgramNode):
+        self.emit_program_asm(program_node)
 
 
     def emit_program_asm(self, program_node: ast.ProgramNode):
@@ -104,12 +105,12 @@ class AsmGenerator:
             self.__emit_expression_stmt(stmt_node)
 
     def __generate_label(self, label: str):
-        label = f'{label}_{self.__lastLabelId}'
-        self.__lastLabelId += 1
+        label = f'{label}_{self.__last_label_id}'
+        self.__last_label_id += 1
         return label
 
     def __emit_return_stmt_asm(self, ret_node: ast.AstNode):
-        self.__emit_expression_stmt(ret_node.expression);
+        self.__emit_expression_stmt(ret_node.expression)
 
     def __emit_declaration_asm(self, decl_node: ast.DeclarationNode):
         self.__emit_expression_stmt(decl_node.init_expression)
@@ -120,7 +121,8 @@ class AsmGenerator:
     def __emit_condition_asm(self, cond_node: ast.ConditionNode):
         post_conditional_lbl = self.__generate_label("post_cond")
 
-        def parse_if_or_elif(self, node: ast.AstNode, cond_label: str, post_conditional_lbl: str, is_last: bool) -> str:
+        def parse_if_or_elif(self, node: ast.AstNode, cond_label: str, post_conditional_lbl: str,
+                             is_last: bool) -> str:
             if isinstance(node, ast.ElifStatementNode):
                 self.emitter.label(cond_label)
 
@@ -137,7 +139,8 @@ class AsmGenerator:
 
         cond_label = self.__generate_label("cond")
         is_last = not cond_node.elif_conditions and not cond_node.else_condition
-        cond_label = parse_if_or_elif(self, cond_node.if_condition, cond_label, post_conditional_lbl, is_last)
+        cond_label = parse_if_or_elif(self, cond_node.if_condition, cond_label,
+                                      post_conditional_lbl, is_last)
 
         for index, node in enumerate(cond_node.elif_conditions):
             is_last = index == (len(cond_node.elif_conditions) - 1) and not cond_node.else_condition
@@ -150,106 +153,133 @@ class AsmGenerator:
         # End of the entire if statement
         self.emitter.label(post_conditional_lbl)
 
+
+    def __emit_constant_value(self, stmt_node: ast.ConstantNode):
+        self.emitter.instruction("mov", f"${stmt_node.value}", "%eax")
+
+
+    def __emit_variable_access(self, stmt_node: ast.VariableNode):
+        offset = self.__variable_map[stmt_node.name]
+        self.emitter.instruction("mov", f"{offset}(%rbp)", "%eax")
+
+
+    def __emit_unary_operation(self, stmt_node: ast.UnaryOperatorNode):
+        # First prepare the content
+        self.__emit_expression_stmt(stmt_node.expression)
+        if stmt_node.type == ast.UnaryOperatorNode.Type.Negation:
+            self.emitter.instruction("neg", "%eax")
+        elif stmt_node.type == ast.UnaryOperatorNode.Type.LogicalNegation:
+            self.emitter.instruction("cmp", "$0", "%eax")
+            self.emitter.instruction("sete", "%al")
+            self.emitter.instruction("movzb", "%al", "%eax")
+        elif stmt_node.type == ast.UnaryOperatorNode.Type.BitwiseComplement:
+            self.emitter.instruction("not", "%eax")
+
+
+    def __emit_binary_operation(self, stmt_node: ast.BinaryOperatorNode):
+        if stmt_node.type == ast.BinaryOperatorNode.Type.Assignment:
+            # First prepare the content
+            self.__emit_expression_stmt(stmt_node.rhs_expression)
+            offset = self.__variable_map[stmt_node.lhs_expression.name]
+            self.emitter.instruction("mov", "%eax", f"{offset}(%rbp)")
+        elif stmt_node.type in (ast.BinaryOperatorNode.Type.Addition,
+                                ast.BinaryOperatorNode.Type.Multiplication):
+            self.__emit_expression_stmt(stmt_node.lhs_expression)
+            self.emitter.push_stack("%rax")
+            self.__emit_expression_stmt(stmt_node.rhs_expression)
+            self.emitter.pop_stack("%rcx")
+            if stmt_node.type == ast.BinaryOperatorNode.Type.Addition:
+                self.emitter.instruction("add", "%ecx", "%eax")
+            elif stmt_node.type == ast.BinaryOperatorNode.Type.Multiplication:
+                self.emitter.instruction("imul", "%ecx", "%eax")
+        else:
+            self.__emit_expression_stmt(stmt_node.rhs_expression)
+            self.emitter.push_stack("%rax")
+            self.__emit_expression_stmt(stmt_node.lhs_expression)
+            self.emitter.pop_stack("%rcx")
+            if stmt_node.type == ast.BinaryOperatorNode.Type.Subtraction:
+                self.emitter.instruction("sub", "%ecx", "%eax")
+            elif stmt_node.type == ast.BinaryOperatorNode.Type.Division:
+                self.emitter.instruction("cdq") # Sign-extend eax to edx:eax
+                                                # (idiv requires signed value)
+                self.emitter.instruction("idiv", "%ecx")
+
+
+    def __emit_logic_operation(self, stmt_node: ast.LogicOperatorNode):
+        if stmt_node.type == ast.LogicOperatorNode.Type.Or:
+            self.__emit_expression_stmt(stmt_node.lhs_expression)
+            label = self.__generate_label("_clause")
+            self.emitter.instruction("cmp", "$0", "%eax")
+            self.emitter.instruction("je", label)
+            self.emitter.instruction("mov", "$1", "%eax")
+            self.emitter.instruction("jmp", f"{label}_end")
+            self.emitter.label(label)
+            self.__emit_expression_stmt(stmt_node.rhs_expression)
+            self.emitter.instruction("cmp", "$0", "%eax")
+            self.emitter.instruction("mov", "$0", "%eax")
+            self.emitter.instruction("setne", "%al")
+            self.emitter.label(f"{label}_end")
+        elif stmt_node.type == ast.LogicOperatorNode.Type.And:
+            self.__emit_expression_stmt(stmt_node.lhs_expression)
+            label = self.__generate_label("_clause")
+            self.emitter.instruction("cmp", "$0", "%eax")
+            self.emitter.instruction("jne", label)
+            self.emitter.instruction("jmp", f"{label}_end")
+            self.emitter.label(label)
+            self.__emit_expression_stmt(stmt_node.rhs_expression)
+            self.emitter.instruction("cmp", "$0", "%eax")
+            self.emitter.instruction("mov", "$0", "%eax")
+            self.emitter.instruction("setne", "%al")
+            self.emitter.label(f"{label}_end")
+        else:
+            self.__emit_expression_stmt(stmt_node.lhs_expression)
+            self.emitter.push_stack("%rax")
+            self.__emit_expression_stmt(stmt_node.rhs_expression)
+            self.emitter.pop_stack("%rcx")
+            self.emitter.instruction("cmp", "%eax", "%ecx")
+            self.emitter.instruction("mov", "$0", "%eax")   # zero-out eax, keep flags
+            if stmt_node.type == ast.LogicOperatorNode.Type.Equals:
+                self.emitter.instruction("sete", "%al")
+            elif stmt_node.type == ast.LogicOperatorNode.Type.NotEquals:
+                self.emitter.instruction("setne", "%al")
+            elif stmt_node.type == ast.LogicOperatorNode.Type.LessThanOrEqual:
+                self.emitter.instruction("setle", "%al")
+            elif stmt_node.type == ast.LogicOperatorNode.Type.GreaterThanOrEqual:
+                self.emitter.instruction("setge", "%al")
+            elif stmt_node.type == ast.LogicOperatorNode.Type.LessThan:
+                self.emitter.instruction("setl", "%al")
+            elif stmt_node.type == ast.LogicOperatorNode.Type.GreaterThan:
+                self.emitter.instruction("setg", "%al")
+            else:
+                raise AsmGeneratorError(f"Invalid logic operator type {stmt_node.type}")
+
+
+    def __emit_ternary_operation(self, stmt_node: ast.TernaryOperatorNode):
+        else_label = self.__generate_label("conditional")
+        post_conditional_lbl = self.__generate_label("post_conditional")
+
+        self.__emit_expression_stmt(stmt_node.condition_expression)
+        self.emitter.instruction("cmp", "$0", "%eax")
+        self.emitter.instruction("je", else_label)
+        self.__emit_expression_stmt(stmt_node.true_expression)
+        self.emitter.instruction("jmp", post_conditional_lbl)
+        self.emitter.label(else_label)
+        self.__emit_expression_stmt(stmt_node.false_expression)
+        self.emitter.label(post_conditional_lbl)
+
+
     def __emit_expression_stmt(self, stmt_node: ast.AstNode):
         if isinstance(stmt_node, ast.ConstantNode):
-            self.emitter.instruction("mov", f"${stmt_node.value}", "%eax");
+            self.__emit_constant_value(stmt_node)
         elif isinstance(stmt_node, ast.VariableNode):
-            offset = self.__variable_map[stmt_node.name]
-            self.emitter.instruction("mov", f"{offset}(%rbp)", "%eax")
+            self.__emit_variable_access(stmt_node)
         elif isinstance(stmt_node, ast.UnaryOperatorNode):
-            # First prepare the content
-            self.__emit_expression_stmt(stmt_node.expression)
-            if stmt_node.type == ast.UnaryOperatorNode.Type.Negation:
-                self.emitter.instruction("neg", "%eax")
-            elif stmt_node.type == ast.UnaryOperatorNode.Type.LogicalNegation:
-                self.emitter.instruction("cmp", "$0", "%eax");
-                self.emitter.instruction("sete", "%al");
-                self.emitter.instruction("movzb", "%al", "%eax");
-            elif stmt_node.type == ast.UnaryOperatorNode.Type.BitwiseComplement:
-                self.emitter.instruction("not", "%eax")
+            self.__emit_unary_operation(stmt_node)
         elif isinstance(stmt_node, ast.BinaryOperatorNode):
-            if stmt_node.type == ast.BinaryOperatorNode.Type.Assignment:
-                # First prepare the content
-                self.__emit_expression_stmt(stmt_node.rhs_expression)
-                offset = self.__variable_map[stmt_node.lhs_expression.name]
-                self.emitter.instruction("mov", "%eax", f"{offset}(%rbp)")
-            elif stmt_node.type == ast.BinaryOperatorNode.Type.Addition or stmt_node.type == ast.BinaryOperatorNode.Type.Multiplication:
-                self.__emit_expression_stmt(stmt_node.lhs_expression)
-                self.emitter.push_stack("%rax")
-                self.__emit_expression_stmt(stmt_node.rhs_expression)
-                self.emitter.pop_stack("%rcx")
-                if stmt_node.type == ast.BinaryOperatorNode.Type.Addition:
-                    self.emitter.instruction("add", "%ecx", "%eax")
-                elif stmt_node.type == ast.BinaryOperatorNode.Type.Multiplication:
-                    self.emitter.instruction("imul", "%ecx", "%eax")
-            else:
-                self.__emit_expression_stmt(stmt_node.rhs_expression)
-                self.emitter.push_stack("%rax")
-                self.__emit_expression_stmt(stmt_node.lhs_expression)
-                self.emitter.pop_stack("%rcx")
-                if stmt_node.type == ast.BinaryOperatorNode.Type.Subtraction:
-                    self.emitter.instruction("sub", "%ecx", "%eax")
-                elif stmt_node.type == ast.BinaryOperatorNode.Type.Division:
-                    self.emitter.instruction("cdq") # Sign-extend eax to edx:eax (idiv requires signed value)
-                    self.emitter.instruction("idiv", "%ecx")
+            self.__emit_binary_operation(stmt_node)
         elif isinstance(stmt_node, ast.LogicOperatorNode):
-            if stmt_node.type == ast.LogicOperatorNode.Type.Or:
-                self.__emit_expression_stmt(stmt_node.lhs_expression)
-                label = self.__generate_label("_clause")
-                self.emitter.instruction("cmp", "$0", "%eax")
-                self.emitter.instruction("je", label)
-                self.emitter.instruction("mov", "$1", "%eax")
-                self.emitter.instruction("jmp", f"{label}_end")
-                self.emitter.label(label)
-                self.__emit_expression_stmt(stmt_node.rhs_expression)
-                self.emitter.instruction("cmp", "$0", "%eax")
-                self.emitter.instruction("mov", "$0", "%eax")
-                self.emitter.instruction("setne", "%al")
-                self.emitter.label(f"{label}_end")
-            elif stmt_node.type == ast.LogicOperatorNode.Type.And:
-                self.__emit_expression_stmt(stmt_node.lhs_expression)
-                label = self.__generate_label("_clause")
-                self.emitter.instruction("cmp", "$0", "%eax")
-                self.emitter.instruction("jne", label)
-                self.emitter.instruction("jmp", f"{label}_end")
-                self.emitter.label(label)
-                self.__emit_expression_stmt(stmt_node.rhs_expression)
-                self.emitter.instruction("cmp", "$0", "%eax")
-                self.emitter.instruction("mov", "$0", "%eax")
-                self.emitter.instruction("setne", "%al")
-                self.emitter.label(f"{label}_end")
-            else:
-                self.__emit_expression_stmt(stmt_node.lhs_expression)
-                self.emitter.push_stack("%rax")
-                self.__emit_expression_stmt(stmt_node.rhs_expression)
-                self.emitter.pop_stack("%rcx")
-                self.emitter.instruction("cmp", "%eax", "%ecx")
-                self.emitter.instruction("mov", "$0", "%eax")   # zero-out eax, keep flags
-                if stmt_node.type == ast.LogicOperatorNode.Type.Equals:
-                    self.emitter.instruction("sete", "%al")
-                elif stmt_node.type == ast.LogicOperatorNode.Type.NotEquals:
-                    self.emitter.instruction("setne", "%al")
-                elif stmt_node.type == ast.LogicOperatorNode.Type.LessThanOrEqual:
-                    self.emitter.instruction("setle", "%al")
-                elif stmt_node.type == ast.LogicOperatorNode.Type.GreaterThanOrEqual:
-                    self.emitter.instruction("setge", "%al")
-                elif stmt_node.type == ast.LogicOperatorNode.Type.LessThan:
-                    self.emitter.instruction("setl", "%al")
-                elif stmt_node.type == ast.LogicOperatorNode.Type.GreaterThan:
-                    self.emitter.instruction("setg", "%al")
-                else:
-                    raise AsmGeneratorError(f"Invalid logic operator type {stmt_node.type}")
+            self.__emit_logic_operation(stmt_node)
         elif isinstance(stmt_node, ast.TernaryOperatorNode):
-            else_label = self.__generate_label("conditional")
-            post_conditional_lbl = self.__generate_label("post_conditional")
-
-            self.__emit_expression_stmt(stmt_node.condition_expression)
-            self.emitter.instruction("cmp", "$0", "%eax")
-            self.emitter.instruction("je", else_label)
-            self.__emit_expression_stmt(stmt_node.true_expression)
-            self.emitter.instruction("jmp", post_conditional_lbl)
-            self.emitter.label(else_label)
-            self.__emit_expression_stmt(stmt_node.false_expression)
-            self.emitter.label(post_conditional_lbl)
+            self.__emit_ternary_operation(stmt_node)
         else:
             raise AsmGeneratorError(f"Invalid expression {stmt_node} in statement")

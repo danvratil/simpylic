@@ -23,14 +23,15 @@ from simpylic import simpylic
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('file', metavar='FILE', type=str, help='File to process.')
-    parser.add_argument('-o', dest='output', metavar='OUTFILE', type=str, help='File to write assembly into.')
-    group = parser.add_mutually_exclusive_group(required = True)
+    parser.add_argument('-o', dest='output', metavar='OUTFILE', type=str,
+                        help='File to write assembly into.')
+    group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-c', dest='compile', action='store_true',
                        help='Compile the code into assembly.')
     group.add_argument('-i', dest='interpret', action='store_true',
                        help='Interpret the program.')
     group.add_argument('-a', dest='dump_ast', action='store_true',
-                        help='Dump the AST and exit.')
+                       help='Dump the AST and exit.')
 
     args = parser.parse_args()
 
