@@ -20,6 +20,7 @@ from enum import Enum
 
 from .node import ExprNode
 
+
 class UnaryOperatorNode(ExprNode):
     class Type(Enum):
         Negation = '-'

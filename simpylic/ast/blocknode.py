@@ -19,6 +19,7 @@ from typing import List, cast
 
 from .node import Node, StmtNode
 
+
 class BlockNode(Node):
     def __init__(self, creates_scope: bool):
         super().__init__()
@@ -36,6 +37,6 @@ class BlockNode(Node):
 
     @property
     def statements(self) -> List[StmtNode]:
-        #FIXME
-        #assert all([isinstance(x, StmtNode) for x in self.children])
+        # FIXME
+        # assert all([isinstance(x, StmtNode) for x in self.children])
         return cast(List[StmtNode], self.children)

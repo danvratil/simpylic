@@ -17,6 +17,7 @@
 
 from .node import StmtNode, ExprNode
 
+
 class VarDeclNode(StmtNode):
     def __init__(self, name: str):
         super().__init__()

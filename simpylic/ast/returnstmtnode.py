@@ -17,6 +17,7 @@
 
 from .node import StmtNode, ExprNode
 
+
 class ReturnStmtNode(StmtNode):
     def __repr__(self):
         return "ReturnStmtNode()"

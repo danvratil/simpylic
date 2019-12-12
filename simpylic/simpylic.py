@@ -23,6 +23,7 @@ from .parser import Parser
 from .compiler import AsmGenerator
 from .ast.ast import AstDumper
 
+
 class Operation(Enum):
     Compile = 1
     Interpret = 2

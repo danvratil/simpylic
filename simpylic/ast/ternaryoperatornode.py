@@ -19,6 +19,7 @@ from typing import Callable, Any
 
 from .node import Node, ExprNode
 
+
 class TernaryOperatorNode(ExprNode):
     def __repr__(self):
         return "TernaryOperatorNode()"

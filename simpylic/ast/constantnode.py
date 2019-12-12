@@ -19,6 +19,7 @@ from typing import Any
 
 from .node import ExprNode
 
+
 class ConstantNode(ExprNode):
     def __init__(self, value_type: str, value: Any):
         super().__init__()

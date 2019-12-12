@@ -19,8 +19,10 @@ from typing import TextIO, Dict, Union, cast
 
 from . import ast
 
+
 class AsmGeneratorError(Exception):
     pass
+
 
 class AsmEmitter:
     class FunctionEmitter:
@@ -82,7 +84,6 @@ class AsmGenerator:
 
     def generate(self, program_node: ast.ProgramNode):
         self.emit_program_asm(program_node)
-
 
     def emit_program_asm(self, program_node: ast.ProgramNode):
         self.emitter._depth += 1
@@ -160,7 +161,6 @@ class AsmGenerator:
         # End of the entire if statement
         self.emitter.label(post_conditional_lbl)
 
-
     def __emit_while_loop_asm(self, stmt_node: ast.WhileStmtNode):
         start_label = self.__generate_label("loop_start")
         end_label = self.__generate_label("loop_end")
@@ -175,15 +175,12 @@ class AsmGenerator:
 
         self.emitter.label(end_label)
 
-
     def __emit_constant_value(self, stmt_node: ast.ConstantNode):
         self.emitter.instruction("mov", f"${stmt_node.value}", "%eax")
-
 
     def __emit_variable_access(self, stmt_node: ast.VarNode):
         offset = self.__variable_map[stmt_node.name]
         self.emitter.instruction("mov", f"{offset}(%rbp)", "%eax")
-
 
     def __emit_unary_operation(self, stmt_node: ast.UnaryOperatorNode):
         # First prepare the content
@@ -196,7 +193,6 @@ class AsmGenerator:
             self.emitter.instruction("movzb", "%al", "%eax")
         elif stmt_node.type == ast.UnaryOperatorNode.Type.BitwiseComplement:
             self.emitter.instruction("not", "%eax")
-
 
     def __emit_binary_operation(self, stmt_node: ast.BinaryOperatorNode):
         if stmt_node.type == ast.BinaryOperatorNode.Type.Assignment:
@@ -223,10 +219,9 @@ class AsmGenerator:
             if stmt_node.type == ast.BinaryOperatorNode.Type.Subtraction:
                 self.emitter.instruction("sub", "%ecx", "%eax")
             elif stmt_node.type == ast.BinaryOperatorNode.Type.Division:
-                self.emitter.instruction("cdq") # Sign-extend eax to edx:eax
-                                                # (idiv requires signed value)
+                # Sign-extend eax to edx:eax (idiv requires signed value)
+                self.emitter.instruction("cdq")
                 self.emitter.instruction("idiv", "%ecx")
-
 
     def __emit_logic_operation(self, stmt_node: ast.LogicOperatorNode):
         if stmt_node.type == ast.LogicOperatorNode.Type.Or:
@@ -276,7 +271,6 @@ class AsmGenerator:
             else:
                 raise AsmGeneratorError(f"Invalid logic operator type {stmt_node.type}")
 
-
     def __emit_ternary_operation(self, stmt_node: ast.TernaryOperatorNode):
         else_label = self.__generate_label("conditional")
         post_conditional_lbl = self.__generate_label("post_conditional")
@@ -289,7 +283,6 @@ class AsmGenerator:
         self.emitter.label(else_label)
         self.__emit_expression_stmt(stmt_node.false_expr)
         self.emitter.label(post_conditional_lbl)
-
 
     def __emit_expression_stmt(self, stmt_node: ast.ExprNode):
         if isinstance(stmt_node, ast.ConstantNode):

@@ -21,6 +21,7 @@ from ddt import ddt, data, unpack
 
 from simpylic.tokenizer import Tokenizer, Token, TokenType
 
+
 @ddt
 class TestTokenizer(unittest.TestCase):
 
@@ -47,6 +48,7 @@ class TestTokenizer(unittest.TestCase):
         buffer.seek(0)
         output_tokens = Tokenizer(buffer).tokenize()
         self.assertListEqual(tokens, output_tokens)
+
 
 if __name__ == '__main__':
     unittest.main()

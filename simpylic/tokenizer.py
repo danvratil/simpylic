@@ -19,9 +19,10 @@ import itertools
 from typing import TextIO, List
 from enum import Enum, auto
 
+
 class TokenType(Enum):
     Unknown = auto()
-    Whitespace = auto() # Only considered for indentation
+    Whitespace = auto()  # Only considered for indentation
     NewLine = auto()
     Literal = auto()
     Identifier = auto()
@@ -59,7 +60,7 @@ class TokenType(Enum):
     __unary_operators = [Minus, Tilde, Negation]
     __binary_operators = [Plus, Minus, Star, Slash, Assignment]
     __ternary_operators = [QuestionMark, Colon]
-    __logic_operators = [LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual, Equals, \
+    __logic_operators = [LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual, Equals,
                          NotEquals, KeywordAnd, KeywordOr]
 
     def is_unary_operator(self):
@@ -104,6 +105,7 @@ class Token:
             and self.pos == other.pos \
             and self.text == other.text
 
+
 class TokenizerError(Exception):
     def __init__(self, what, line, pos):
         super().__init__(self, what)
@@ -113,6 +115,7 @@ class TokenizerError(Exception):
 
     def __str__(self):
         return f"{self.what} on line {self.line}:{self.pos}"
+
 
 class Tokenizer:
 
@@ -126,16 +129,14 @@ class Tokenizer:
                           '!': TokenType.Negation,
                           '(': TokenType.LeftParenthesis,
                           ')': TokenType.RightParenthesis,
-                          '?': TokenType.QuestionMark
-                         }
+                          '?': TokenType.QuestionMark}
     __long_operators = {'==': TokenType.Equals,
                         '!=': TokenType.NotEquals,
-                        '<' : TokenType.LessThan,
+                        '<':  TokenType.LessThan,
                         '>=': TokenType.GreaterThanOrEqual,
                         '<=': TokenType.LessThanOrEqual,
-                        '>' : TokenType.GreaterThan,
-                        '=' : TokenType.Assignment
-                       }
+                        '>':  TokenType.GreaterThan,
+                        '=':  TokenType.Assignment}
 
     __keywords = {'return': TokenType.KeywordReturn,
                   'and': TokenType.KeywordAnd,
@@ -144,8 +145,7 @@ class Tokenizer:
                   'elif': TokenType.KeywordElif,
                   'else': TokenType.KeywordElse,
                   'while': TokenType.KeywordWhile,
-                  'def': TokenType.KeywordDef
-                 }
+                  'def': TokenType.KeywordDef}
 
     def __init__(self, source: TextIO):
         self.source = source

@@ -17,6 +17,7 @@
 
 from .node import ExprNode
 
+
 class VarNode(ExprNode):
     def __init__(self, name: str):
         super().__init__()

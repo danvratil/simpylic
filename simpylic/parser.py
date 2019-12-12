@@ -24,6 +24,7 @@ from .tokenizer import TokenType, Token
 class ParserError(Exception):
     pass
 
+
 class Parser:
     def __init__(self):
         self.__variables = []
@@ -43,7 +44,6 @@ class Parser:
                 main.body.add_statement(cast(ast.StmtNode, stmt_node))
 
         return root
-
 
     def __pop_newlines(self, tokens: List[Token]):
         while tokens and tokens[0].type == TokenType.NewLine:
@@ -79,7 +79,6 @@ class Parser:
 
         raise ParserError(f'Unexpected statement identifier {tokens[0]}')
 
-
     def __parse_return_stmt(self, tokens: List[Token]) -> ast.ReturnStmtNode:
         token = tokens.pop(0)
         assert token.type == TokenType.KeywordReturn
@@ -93,10 +92,9 @@ class Parser:
 
         return stmt_node
 
-
     def __parse_function_definition(self, tokens: List[Token]) -> ast.FunDefNode:
         assert tokens[0].type == TokenType.KeywordDef
-        tokens.pop(0) # pop the 'def' keyword
+        tokens.pop(0)  # pop the 'def' keyword
 
         assert tokens[0].type == TokenType.Identifier
         name_token = tokens.pop(0)
@@ -109,25 +107,24 @@ class Parser:
         while tokens and tokens[0].type != TokenType.RightParenthesis:
             arguments.append(tokens.pop(0).text)
             assert tokens[0].type == TokenType.Comma
-            tokens.pop(0) # pop the comma
+            tokens.pop(0)  # pop the comma
 
         assert tokens and tokens[0].type == TokenType.RightParenthesis
-        tokens.pop(0) # pop the parenthesis
+        tokens.pop(0)  # pop the parenthesis
 
         node = ast.FunDefNode(name_token.text, arguments)
 
         assert tokens and tokens[0].type == TokenType.Colon
-        tokens.pop(0) # pop the colon
+        tokens.pop(0)  # pop the colon
         self.__pop_newlines(tokens)
 
         node.body = self.__parse_block(tokens, creates_scope=True)
 
         return node
 
-
     def __parse_while_statement(self, tokens: List[Token]) -> ast.WhileStmtNode:
         assert tokens[0].type == TokenType.KeywordWhile
-        tokens.pop(0) # pop the 'while' keyword
+        tokens.pop(0)  # pop the 'while' keyword
 
         while_node = ast.WhileStmtNode()
         expression_stack: List[ast.ExprNode] = []
@@ -142,13 +139,12 @@ class Parser:
 
         return while_node
 
-
     def __parse_if_statement(self, tokens: List[Token]) -> ast.ConditionNode:
         condition_node = ast.ConditionNode()
 
         def parse_if(self, tokens: List[Token]) -> ast.IfStmtNode:
             assert tokens[0].type == TokenType.KeywordIf
-            tokens.pop(0) # pop the 'if' keyword
+            tokens.pop(0)  # pop the 'if' keyword
 
             if_node = ast.IfStmtNode()
             expression_stack: List[ast.ExprNode] = []
@@ -156,27 +152,25 @@ class Parser:
             assert len(expression_stack) == 1
             if_node.condition_expr = expression_stack.pop()
             assert tokens[0].type == TokenType.Colon
-            tokens.pop(0) # pop the colon
+            tokens.pop(0)  # pop the colon
             self.__pop_newlines(tokens)
             if_node.true_block = self.__parse_block(tokens, creates_scope=False)
             return if_node
 
-
         def parse_else(self, tokens: List[Token]) -> ast.ElseStmtNode:
             assert tokens[0].type == TokenType.KeywordElse
-            tokens.pop(0) # pop the 'else' keyword
+            tokens.pop(0)  # pop the 'else' keyword
             assert tokens[0].type == TokenType.Colon
-            tokens.pop(0) # pop the colon
+            tokens.pop(0)  # pop the colon
             self.__pop_newlines(tokens)
 
             else_node = ast.ElseStmtNode()
             else_node.false_block = self.__parse_block(tokens, creates_scope=False)
             return else_node
 
-
         def parse_elif(self, tokens: List[Token]) -> ast.ElifStmtNode:
             assert tokens[0].type == TokenType.KeywordElif
-            tokens.pop(0) # pop the 'elif' keyword
+            tokens.pop(0)  # pop the 'elif' keyword
 
             elif_node = ast.ElifStmtNode()
             expression_stack: List[ast.ExprNode] = []
@@ -184,7 +178,7 @@ class Parser:
             assert len(expression_stack) == 1
             elif_node.condition_expr = expression_stack.pop()
             assert tokens[0].type == TokenType.Colon
-            tokens.pop(0) # pop the colon
+            tokens.pop(0)  # pop the colon
             self.__pop_newlines(tokens)
             elif_node.true_block = self.__parse_block(tokens, creates_scope=False)
             return elif_node
@@ -197,17 +191,16 @@ class Parser:
                 condition_node.add_elif_statement(parse_elif(self, tokens))
             elif tokens[0].type == TokenType.KeywordElse and self.__line_indentation == indentation:
                 condition_node.else_statement = parse_else(self, tokens)
-                break # nothing may follow else
+                break  # nothing may follow else
             else:
                 break
 
         return condition_node
 
-
     def __parse_parenthesized_subexpression(self, tokens: List[Token],
                                             expression_stack: List[ast.ExprNode]):
         assert tokens[0].type == TokenType.LeftParenthesis
-        start = tokens.pop(0) # pop the left parenthesis
+        tokens.pop(0)  # pop the left parenthesis
         depth = 1
         subtokens = []
         while tokens:
@@ -216,17 +209,16 @@ class Parser:
             elif tokens[0].type == TokenType.RightParenthesis:
                 depth -= 1
                 if depth == 0:
-                    tokens.pop(0) # pop the final closing parenthesis
+                    tokens.pop(0)  # pop the final closing parenthesis
                     break
 
             subtokens.append(tokens.pop(0))
 
         if depth != 0:
-            raise ParserError(f'Missing closing parenthesis for opening parenthesis on ' \
-                               'line {start.line}, char {start.pos}.')
+            raise ParserError(f'Missing closing parenthesis for opening parenthesis on '
+                              'line {start.line}, char {start.pos}.')
 
         self.__parse_expression(subtokens, expression_stack)
-
 
     @staticmethod
     def __parse_literal(tokens: List[Token], expression_stack: List[ast.ExprNode]) -> Token:
@@ -234,7 +226,6 @@ class Parser:
         expression_stack.append(ast.ConstantNode(value_type='int', value=int(token.text)))
 
         return token
-
 
     def __parse_block(self, tokens: List[Token], creates_scope: bool) -> ast.BlockNode:
         block = ast.BlockNode(creates_scope)
@@ -246,7 +237,7 @@ class Parser:
         self.__indentation_level = indentation
         while len(tokens[0].text) == indentation:
             assert tokens[0].type == TokenType.Whitespace
-            tokens.pop(0) # pop the indentation token
+            tokens.pop(0)  # pop the indentation token
             stmt = self.__parse_statement(tokens)
             if stmt:
                 block.add_statement(stmt)
@@ -260,11 +251,12 @@ class Parser:
 
     def __parse_identifier(self, tokens: List[Token],
                            expression_stack: List[ast.ExprNode]) -> Token:
+
         def parse_assignment(self, var_token: Token, tokens: List[Token],
                              expression_stack: List[ast.ExprNode]) -> ast.ExprNode:
             if var_token.text not in self.__variables:
                 node = ast.VarDeclNode(name=var_token.text)
-                tokens.pop(0) # eat the '=' operator
+                tokens.pop(0)  # eat the '=' operator
                 self.__parse_expression(tokens, expression_stack)
                 node.init_expr = expression_stack.pop()
                 self.__variables.append(var_token.text)
@@ -275,24 +267,24 @@ class Parser:
 
         def parse_function_call(self, name_token: Token, tokens: List[Token],
                                 expression_stack: List[ast.ExprNode]) -> ast.FunCallNode:
-            if not name_token.text in self.__functions:
-                raise ParserError(f"Call to an unknown function {name_token.text} on " \
-                                 f"line {name_token.line}, char {name_token.pos}")
+            if name_token.text not in self.__functions:
+                raise ParserError(f"Call to an unknown function {name_token.text} on "
+                                  "line {name_token.line}, char {name_token.pos}")
 
             node = ast.FunCallNode(name_token.text)
 
             assert tokens[0].type == TokenType.LeftParenthesis
-            tokens.pop(0) # pop the parentheses
+            tokens.pop(0)  # pop the parentheses
 
             while tokens and tokens[0].type != TokenType.RightParenthesis:
                 self.__parse_expression(tokens, expression_stack)
                 node.add_argument(expression_stack.pop())
 
                 assert tokens[0].type == TokenType.Comma
-                tokens.pop(0) # pop the comma
+                tokens.pop(0)  # pop the comma
 
             assert tokens and tokens[0].type == TokenType.RightParenthesis
-            tokens.pop(0) # pop the right parenthesis
+            tokens.pop(0)  # pop the right parenthesis
 
             return node
 
@@ -302,7 +294,7 @@ class Parser:
         elif tokens and tokens[0].type == TokenType.LeftParenthesis:
             node = parse_function_call(self, token, tokens, expression_stack)
         else:
-            if not token.text in self.__variables:
+            if token.text not in self.__variables:
                 raise ParserError(f"Undefined variable {token.text}")
 
             node = ast.VarNode(name=token.text)
@@ -310,7 +302,6 @@ class Parser:
         expression_stack.append(node)
 
         return token
-
 
     def __parse_bound_unary_operator(self, tokens: List[Token],
                                      expression_stack: List[ast.ExprNode]) -> Token:
@@ -322,7 +313,6 @@ class Parser:
         expression_stack.append(node)
 
         return operator_token
-
 
     def __parse_binary_operator(self, tokens: List[Token],
                                 expression_stack: List[ast.ExprNode]) -> Token:
@@ -337,7 +327,6 @@ class Parser:
 
         return operator_token
 
-
     def __parse_logic_operator(self, tokens: List[Token],
                                expression_stack: List[ast.ExprNode]) -> Token:
         operator_token = tokens.pop(0)
@@ -351,7 +340,6 @@ class Parser:
 
         return operator_token
 
-
     def __parse_ternary_operator(self, tokens: List[Token],
                                  expression_stack: List[ast.ExprNode]) -> Token:
         operator_token = tokens.pop(0)
@@ -361,7 +349,7 @@ class Parser:
         self.__parse_expression(tokens, expression_stack)
         node.true_expr = expression_stack.pop()
         assert tokens[0].type == TokenType.Colon
-        tokens.pop(0) # pop colon
+        tokens.pop(0)  # pop colon
 
         self.__parse_expression(tokens, expression_stack)
         node.false_expr = expression_stack.pop()
@@ -369,7 +357,6 @@ class Parser:
         expression_stack.append(node)
 
         return operator_token
-
 
     def __parse_expression(self, tokens: List[Token], expression_stack: List[ast.ExprNode],
                            operator: Token = None) -> None:

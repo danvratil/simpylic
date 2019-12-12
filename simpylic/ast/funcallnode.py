@@ -17,7 +17,8 @@
 
 from typing import List, cast
 
-from . import ExprNode
+from .node import ExprNode
+
 
 class FunCallNode(ExprNode):
     def __init__(self, name: str):

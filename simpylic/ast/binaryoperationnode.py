@@ -20,6 +20,7 @@ from enum import Enum
 
 from .node import Node, ExprNode
 
+
 class BinaryOperatorNode(ExprNode):
     class Type(Enum):
         Addition = '+'

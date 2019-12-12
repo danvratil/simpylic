@@ -20,6 +20,7 @@ from sys import stdout
 
 from simpylic import simpylic
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('file', metavar='FILE', type=str, help='File to process.')
@@ -50,6 +51,7 @@ def main():
                 operation = simpylic.Operation.Interpret
 
             simpylic.run(srcfile, outfile, operation)
+
 
 if __name__ == "__main__":
     main()

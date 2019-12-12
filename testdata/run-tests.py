@@ -3,11 +3,12 @@ import subprocess
 import os
 from io import StringIO
 
-import simpylic as Simpylic
+import simpylic.simpylic as Simpylic
 
 
 def log(msg):
     print(msg, end='', flush=True)
+
 
 def main():
     with open('testdata/tests.json', encoding='utf-8') as infile:
@@ -34,8 +35,8 @@ def main():
         program = subprocess.Popen('/tmp/simpylic-test-out')
         result = program.wait()
         if result != int(test['return-code']) % 256:
-            raise RuntimeError(f'The utility finished with return code {result} does not match ' \
-                                'the expected result {test["return-code"]}')
+            raise RuntimeError(f'The utility finished with return code {result} does not match '
+                               'the expected result {test["return-code"]}')
 
         log('OK.\n')
 

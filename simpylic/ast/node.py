@@ -15,14 +15,15 @@
  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from typing import TypeVar, Callable, Optional, Iterable, Type, Any, cast
+from typing import TypeVar, List, Callable, Optional, Iterable, Type, Any, cast
 
 SubNode = TypeVar('SubNode', bound='Node')
+
 
 class Node:
     def __init__(self):
         self.__parent = None
-        self.__children = [] # type: List[Node]
+        self.__children = []  # type: List[Node]
 
     def traverse(self, depth: int):
         print(' ' * (depth * 2), self, sep='')

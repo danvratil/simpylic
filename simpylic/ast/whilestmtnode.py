@@ -18,6 +18,7 @@
 from .node import StmtNode, ExprNode
 from .blocknode import BlockNode
 
+
 class WhileStmtNode(StmtNode):
     def __repr__(self):
         return "WhileStmtNode()"

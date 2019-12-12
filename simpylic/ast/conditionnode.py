@@ -23,6 +23,7 @@ from .ifstmtnode import IfStmtNode
 from .elifstmtnode import ElifStmtNode
 from .elsestmtnode import ElseStmtNode
 
+
 class ConditionNode(StmtNode):
     def __repr__(self):
         return f"ConditionNode()"

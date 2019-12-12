@@ -17,7 +17,9 @@
 
 from typing import List
 
-from . import StmtNode, BlockNode
+from .node import StmtNode
+from .blocknode import BlockNode
+
 
 class FunDefNode(StmtNode):
     def __init__(self, name: str, arguments: List[str]):

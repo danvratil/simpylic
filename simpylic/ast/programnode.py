@@ -20,6 +20,7 @@ from typing import Iterable, cast
 from .node import Node
 from .fundefnode import FunDefNode
 
+
 class ProgramNode(Node):
     def __repr__(self):
         return "ProgramNode()"
