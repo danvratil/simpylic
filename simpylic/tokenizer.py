@@ -16,7 +16,7 @@
 """
 
 import itertools
-from typing import TextIO
+from typing import TextIO, List
 from enum import Enum, auto
 
 class TokenType(Enum):
@@ -40,6 +40,7 @@ class TokenType(Enum):
     Tilde = auto()
     Assignment = auto()
     QuestionMark = auto()
+    Comma = auto()
 
     LeftParenthesis = auto()
     RightParenthesis = auto()
@@ -51,6 +52,7 @@ class TokenType(Enum):
     KeywordElif = auto()
     KeywordElse = auto()
     KeywordWhile = auto()
+    KeywordDef = auto()
 
     Colon = auto()
 
@@ -141,7 +143,8 @@ class Tokenizer:
                   'if': TokenType.KeywordIf,
                   'elif': TokenType.KeywordElif,
                   'else': TokenType.KeywordElse,
-                  'while': TokenType.KeywordWhile
+                  'while': TokenType.KeywordWhile,
+                  'def': TokenType.KeywordDef
                  }
 
     def __init__(self, source: TextIO):
@@ -149,7 +152,7 @@ class Tokenizer:
         self.__line = 1
         self.__pos = 1
         self.__token_text = ''
-        self.__tokens = []
+        self.__tokens: List[str] = []
 
     def __token_pos(self):
         return {'line': self.__line,
@@ -167,11 +170,12 @@ class Tokenizer:
                         if not char or char not in (' ', '\t'):
                             break
                         token_text += char
-                    self.__tokens.append(Token(token_text, TokenType.Whitespace, **self.__token_pos()))
+                    self.__tokens.append(Token(token_text, TokenType.Whitespace,
+                                               **self.__token_pos()))
                     self.__pos += len(token_text)
                     continue
-                else:
-                    self.__pos += 1
+
+                self.__pos += 1
             elif char == '\n':
                 self.__tokens.append(Token(char, TokenType.NewLine, **self.__token_pos()))
                 self.__pos = 1
@@ -221,10 +225,12 @@ class Tokenizer:
                     if not char or not char.isdigit():
                         break
                     token_text += char
-                self.__tokens.append(Token(text=token_text, token_type=TokenType.Literal,
-                                           **self.__token_pos()))
+                self.__tokens.append(Token(token_text, TokenType.Literal, **self.__token_pos()))
                 self.__pos += len(token_text)
                 continue
+            elif char == ',':
+                self.__tokens.append(Token(',', TokenType.Comma, **self.__token_pos()))
+                self.__pos += 1
             else:
                 raise TokenizerError(f"Invalid token '{char}'", **self.__token_pos())
 

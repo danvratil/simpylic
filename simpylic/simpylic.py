@@ -21,7 +21,7 @@ from typing import TextIO
 from .tokenizer import Tokenizer
 from .parser import Parser
 from .compiler import AsmGenerator
-from .ast import AstDumper
+from .ast.ast import AstDumper
 
 class Operation(Enum):
     Compile = 1
