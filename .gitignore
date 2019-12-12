@@ -6,3 +6,4 @@ __pycache__
 out
 *.s
 a.out
+.mypy_cache
