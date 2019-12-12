@@ -16,7 +16,7 @@
 """
 
 import itertools
-from typing import TextIO, List
+from typing import TextIO, List, Iterator
 from enum import Enum, auto
 
 
@@ -156,84 +156,110 @@ class Tokenizer:
 
     def __token_pos(self):
         return {'line': self.__line,
-                'pos': self.__pos - len(self.__token_text)}
+                'pos': self.__pos}
+
+    def __tokenize_newline(self, char: str, char_iter: Iterator[str]) -> str:
+        self.__tokens.append(Token(char, TokenType.NewLine, **self.__token_pos()))
+        self.__pos = 1
+        self.__line += 1
+        return next(char_iter, None)
+
+    def __tokenize_colon(self, char: str, char_iter: Iterator[str]) -> str:
+        self.__tokens.append(Token(char, TokenType.Colon, **self.__token_pos()))
+        self.__pos += 1
+        return next(char_iter, None)
+
+    def __tokenize_comma(self, char: str, char_iter: Iterator[str]) -> str:
+        self.__tokens.append(Token(',', TokenType.Comma, **self.__token_pos()))
+        self.__pos += 1
+        return next(char_iter, None)
+
+    def __tokenize_whitespace(self, char: str,
+                              char_iter: Iterator[str]) -> str:
+        if self.__pos == 1:
+            self.__token_text = ""
+            while char and char in (' ', '\t'):
+                self.__token_text += char
+                char = next(char_iter, None)
+
+            self.__tokens.append(Token(self.__token_text, TokenType.Whitespace,
+                                       **self.__token_pos()))
+            self.__pos += len(self.__token_text)
+            return char
+
+        self.__pos += 1
+        return next(char_iter, None)
+
+    def __tokenize_operator(self, char: str,
+                            char_iter: Iterator[str]) -> str:
+        if char in Tokenizer.__single_operators:
+            self.__tokens.append(Token(char, Tokenizer.__single_operators[char],
+                                       **self.__token_pos()))
+            self.__pos += 1
+            return next(char_iter, None)
+
+        self.__token_text = ""
+        while char and char in Tokenizer.__operators:
+            self.__token_text += char
+            char = next(char_iter, None)
+
+        if self.__token_text in Tokenizer.__long_operators:
+            self.__tokens.append(Token(self.__token_text,
+                                       Tokenizer.__long_operators[self.__token_text],
+                                       **self.__token_pos()))
+            self.__pos += len(self.__token_text)
+            return char
+
+        raise TokenizerError(f"Unknown operator '{self.__token_text}'",
+                             **self.__token_pos())
+
+    def __tokenize_alpha(self, char: str,
+                         char_iter: Iterator[str]) -> str:
+        self.__token_text = ""
+        while char and (char.isalpha() or char.isdigit() or char == '_'):
+            self.__token_text += char
+            char = next(char_iter, None)
+
+        if self.__token_text in Tokenizer.__keywords:
+            token_type = Tokenizer.__keywords[self.__token_text]
+        else:
+            token_type = TokenType.Identifier
+        self.__tokens.append(Token(self.__token_text, token_type, **self.__token_pos()))
+        self.__pos += len(self.__token_text)
+
+        return char
+
+    def __tokenize_digit(self, char: str,
+                         char_iter: Iterator[str]) -> str:
+        self.__token_text = ""
+        while char and char.isdigit():
+            self.__token_text += char
+            char = next(char_iter, None)
+
+        self.__tokens.append(Token(self.__token_text, TokenType.Literal, **self.__token_pos()))
+        self.__pos += len(self.__token_text)
+
+        return char
 
     def tokenize(self):
         char_iter = itertools.chain.from_iterable(self.source)
         char = next(char_iter, None)
-        while char is not None:
+        while char:
             if char in (' ', '\t'):
-                if self.__pos == 1:
-                    token_text = char
-                    while True:
-                        char = next(char_iter, None)
-                        if not char or char not in (' ', '\t'):
-                            break
-                        token_text += char
-                    self.__tokens.append(Token(token_text, TokenType.Whitespace,
-                                               **self.__token_pos()))
-                    self.__pos += len(token_text)
-                    continue
-
-                self.__pos += 1
+                char = self.__tokenize_whitespace(char, char_iter)
             elif char == '\n':
-                self.__tokens.append(Token(char, TokenType.NewLine, **self.__token_pos()))
-                self.__pos = 1
-                self.__line += 1
+                char = self.__tokenize_newline(char, char_iter)
             elif char == ':':
-                self.__tokens.append(Token(char, TokenType.Colon, **self.__token_pos()))
-                self.__pos += 1
+                char = self.__tokenize_colon(char, char_iter)
             elif char in Tokenizer.__operators:
-                if char in Tokenizer.__single_operators:
-                    self.__tokens.append(Token(char, Tokenizer.__single_operators[char],
-                                               **self.__token_pos()))
-                    self.__pos += 1
-                else:
-                    token_text = char
-                    while True:
-                        char = next(char_iter, None)
-                        if not char or char not in Tokenizer.__operators:
-                            break
-                        token_text += char
-                    if token_text in Tokenizer.__long_operators:
-                        self.__tokens.append(Token(token_text,
-                                                   Tokenizer.__long_operators[token_text],
-                                                   **self.__token_pos()))
-                        self.__pos += len(token_text)
-                    else:
-                        raise TokenizerError(f"Unknown operator '{token_text}'",
-                                             **self.__token_pos())
-                    continue
+                char = self.__tokenize_operator(char, char_iter)
             elif char.isalpha():
-                token_text = char
-                while True:
-                    char = next(char_iter, None)
-                    if not char or not char.isalpha() and not char.isdigit() and not char == '_':
-                        break
-                    token_text += char
-                if token_text in Tokenizer.__keywords:
-                    token_type = Tokenizer.__keywords[token_text]
-                else:
-                    token_type = TokenType.Identifier
-                self.__tokens.append(Token(token_text, token_type, **self.__token_pos()))
-                self.__pos += len(token_text)
-                continue
+                char = self.__tokenize_alpha(char, char_iter)
             elif char.isdigit():
-                token_text = char
-                while True:
-                    char = next(char_iter, None)
-                    if not char or not char.isdigit():
-                        break
-                    token_text += char
-                self.__tokens.append(Token(token_text, TokenType.Literal, **self.__token_pos()))
-                self.__pos += len(token_text)
-                continue
+                char = self.__tokenize_digit(char, char_iter)
             elif char == ',':
-                self.__tokens.append(Token(',', TokenType.Comma, **self.__token_pos()))
-                self.__pos += 1
+                char = self.__tokenize_comma(char, char_iter)
             else:
                 raise TokenizerError(f"Invalid token '{char}'", **self.__token_pos())
-
-            char = next(char_iter, None)
 
         return self.__tokens

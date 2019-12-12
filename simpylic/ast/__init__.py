@@ -15,6 +15,7 @@
  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+# flake8: noqa
 from .node import Node, StmtNode, ExprNode
 from .binaryoperationnode import BinaryOperatorNode
 from .blocknode import BlockNode

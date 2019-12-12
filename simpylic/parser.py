@@ -358,6 +358,16 @@ class Parser:
 
         return operator_token
 
+    def __parse_operator(self, tokens: List[Token],
+                         expression_stack: List[ast.ExprNode]) -> Token:
+        if tokens[0].type.is_binary_operator():
+            return self.__parse_binary_operator(tokens, expression_stack)
+        elif tokens[0].type.is_logic_operator():
+            return self.__parse_logic_operator(tokens, expression_stack)
+        elif tokens[0].type.is_ternary_operator():
+            return self.__parse_ternary_operator(tokens, expression_stack)
+        return None
+
     def __parse_expression(self, tokens: List[Token], expression_stack: List[ast.ExprNode],
                            operator: Token = None) -> None:
         # Must be a literal or an unary operator
@@ -381,9 +391,6 @@ class Parser:
                 if operator and operator.type.priority() < tokens[0].type.priority():
                     return
 
-                if tokens[0].type.is_binary_operator():
-                    token = self.__parse_binary_operator(tokens, expression_stack)
-                elif tokens[0].type.is_logic_operator():
-                    token = self.__parse_logic_operator(tokens, expression_stack)
-                elif tokens[0].type.is_ternary_operator():
-                    token = self.__parse_ternary_operator(tokens, expression_stack)
+                operator_token = self.__parse_operator(tokens, expression_stack)
+                if operator_token:
+                    token = operator_token
