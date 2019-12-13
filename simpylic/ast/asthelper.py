@@ -15,16 +15,17 @@
  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from typing import Callable
-
+from .scopenode import ScopeNode
 from .node import Node
 
+def find_enclosing_scope(node: Node) -> ScopeNode:
+    if node.parent:
+        node = node.parent # skip self
+        while node:
+            if isinstance(node, ScopeNode):
+                return node
+            node = node.parent
+        # top-level ProgramNode is always a ScopeNode
+        assert False
 
-class AstError(RuntimeError):
-    pass
-
-
-class AstDumper:
-    @staticmethod
-    def dump(node: Node, depth: int = 0):
-        node.traverse(depth)
+    return node

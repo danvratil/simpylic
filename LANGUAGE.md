@@ -17,6 +17,7 @@ program = { statement, new_line } ;
 statement = return_statement
     | if_statement
     | while_statement
+    | function_definition
     | expression ;
 
 (* This should represent all expressions currently supported by
@@ -34,6 +35,8 @@ if_statement = "if", expression, ":", ( statement )*
         [ "else", ":", ( statement )* ]
 
 while_statement = "while", expression, ":", ( statement )*
+
+function_definition = "def", identifier, "(", ( argument, [","] )*, ")": ( statement )*
 
 unary_operator = "!" | "~" | "-" ;
 binary_operator = "+" | "-" | "*" | "/" | "and" | "or" | "==" | "!=" | "<" | "<=" | ">" | ">="

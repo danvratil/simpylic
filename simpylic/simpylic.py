@@ -22,14 +22,13 @@ from .tokenizer import Tokenizer
 from .parser import Parser
 from .compiler import AsmGenerator
 from .ast.ast import AstDumper
-
+from .ast_preprocessor import AstPreprocessor
 
 class Operation(Enum):
     Compile = 1
     Interpret = 2
     DumpAst = 3
     DumpTokens = 4
-
 
 def run(srcfile: TextIO, outfile: TextIO, operation: Operation):
     if operation == Operation.Interpret:
@@ -40,6 +39,7 @@ def run(srcfile: TextIO, outfile: TextIO, operation: Operation):
         print(tokens)
     else:
         ast = Parser().parse(tokens)
+        AstPreprocessor().process(ast)
         if operation == Operation.DumpAst:
             AstDumper().dump(ast)
         elif operation == Operation.Compile:

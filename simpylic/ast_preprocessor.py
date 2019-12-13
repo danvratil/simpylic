@@ -15,9 +15,10 @@
  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from typing import cast
+from typing import List, cast
 
-from .ast import Node, ProgramNode, AstVisitor
+from .ast import Node, ProgramNode, FunDefNode
+from .ast import asthelper as AstHelper
 
 
 class AstPreprocessor:
@@ -30,12 +31,32 @@ class AstPreprocessor:
     def __extract_nested_functions(self, tree: Node):
         program = cast(ProgramNode, tree)
 
-        def visit(node: Node):
-            pass
+        def build_function_name(node: FunDefNode):
+            name = node.name
+            node = node.parent
+            while node:
+                if isinstance(node, FunDefNode):
+                    name = f"_{node.name}_{name}"
+                node = node.parent
+            return name
 
-        visitor = AstVisitor(program, visit)
-        visitor.visit()
-        # TODO: Find nested function definitions and move them to the top-level
-        # TODO: Rename the nested functions (and all references to them) to have a globally
-        #       unique name, possibly containing the name of all parent functions (and maybe
-        #       a nubmer)
+        def find_functions(node: Node, function_stack: List[FunDefNode]):
+            if isinstance(node, FunDefNode):
+                new_name = build_function_name(node)
+                scope = AstHelper.find_enclosing_scope(node)
+                scope.rename_function_calls(node.name, new_name)
+                node.name = new_name  # rename the function
+                function_stack.append(node)
+
+            for child in node.children:
+                find_functions(child, function_stack)
+
+        def move_functions_to_program_scope(program: ProgramNode, function_stack: List[FunDefNode]):
+            for fun in function_stack:
+                parent = fun.parent
+                parent.remove_child(fun)
+                program.add_function(fun)
+
+        function_stack: List[FunDefNode] = []
+        find_functions(program, function_stack)
+        move_functions_to_program_scope(program, function_stack)

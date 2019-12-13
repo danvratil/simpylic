@@ -32,6 +32,10 @@ class FunCallNode(ExprNode):
     def name(self) -> str:
         return self.__name
 
+    @name.setter
+    def name(self, name: str):
+        self.__name = name
+
     @property
     def arguments(self) -> List[ExprNode]:
         assert all([isinstance(x, ExprNode) for x in self.children])

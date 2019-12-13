@@ -21,16 +21,8 @@ from .node import Node, StmtNode
 
 
 class BlockNode(Node):
-    def __init__(self, creates_scope: bool):
-        super().__init__()
-        self.__creates_scope = creates_scope
-
     def __repr__(self):
-        return f"BlockNode(creates_scope={self.__creates_scope})"
-
-    @property
-    def creates_scope(self) -> bool:
-        return self.__creates_scope
+        return f"BlockNode()"
 
     def add_statement(self, stmt: StmtNode):
         self._add_child(stmt)

@@ -17,11 +17,11 @@
 
 from typing import Iterable, cast
 
-from .node import Node
+from .scopenode import ScopeNode
 from .fundefnode import FunDefNode
 
 
-class ProgramNode(Node):
+class ProgramNode(ScopeNode):
     def __repr__(self):
         return "ProgramNode()"
 

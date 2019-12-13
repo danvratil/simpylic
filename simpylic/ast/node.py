@@ -47,7 +47,7 @@ class Node:
         self.__children.append(node)
         node._set_parent(self)
 
-    def _remove_child(self, node: 'Node'):
+    def remove_child(self, node: 'Node'):
         if node in self.__children:
             self.__children.remove(node)
         node._set_parent(None)
@@ -58,7 +58,7 @@ class Node:
         except KeyError:
             old = None
         if old:
-            self._remove_child(old)
+            self.remove_child(old)
         if new:
             self._add_child(new)
 

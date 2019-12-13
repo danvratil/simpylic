@@ -15,16 +15,21 @@
  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from typing import Callable
+from .blocknode import BlockNode
+from .funcallnode import FunCallNode
 
-from .node import Node
+class ScopeNode(BlockNode):
+    def __repr__(self):
+        return f"ScopeNode()"
+
+    def rename_function_calls(self, old_name: str, new_name: str):
+        self.__recursively_rename(self, old_name, new_name)
+
+    def __recursively_rename(self, node: 'Node', old_name: str, new_name: str):
+        if isinstance(node, FunCallNode) and node.name == old_name:
+            node.name = new_name
+
+        for child in node.children:
+            self.__recursively_rename(child, old_name, new_name)
 
 
-class AstError(RuntimeError):
-    pass
-
-
-class AstDumper:
-    @staticmethod
-    def dump(node: Node, depth: int = 0):
-        node.traverse(depth)

@@ -35,7 +35,7 @@ class Parser:
     def parse(self, tokens: List[Token]) -> ast.ProgramNode:
         root = ast.ProgramNode()
         main = ast.FunDefNode("main", arguments=[])
-        main.body = ast.BlockNode(creates_scope=True)
+        main.body = ast.ScopeNode()
         root.add_function(main)
 
         while tokens:
@@ -228,7 +228,10 @@ class Parser:
         return token
 
     def __parse_block(self, tokens: List[Token], creates_scope: bool) -> ast.BlockNode:
-        block = ast.BlockNode(creates_scope)
+        if creates_scope:
+            block = ast.ScopeNode()
+        else:
+            block = ast.BlockNode()
         assert tokens[0].type == TokenType.Whitespace
         indentation = len(tokens[0].text)
         if indentation <= self.__indentation_level:

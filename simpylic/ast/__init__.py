@@ -29,6 +29,7 @@ from .ifstmtnode import IfStmtNode
 from .logicoperatornode import LogicOperatorNode
 from .programnode import ProgramNode
 from .returnstmtnode import ReturnStmtNode
+from .scopenode import ScopeNode
 from .ternaryoperatornode import TernaryOperatorNode
 from .unaryoperatornode import UnaryOperatorNode
 from .vardeclnode import VarDeclNode
