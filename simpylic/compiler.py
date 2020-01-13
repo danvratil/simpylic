@@ -25,36 +25,10 @@ class AsmGeneratorError(Exception):
 
 
 class AsmEmitter:
-    class FunctionEmitter:
-        def __init__(self, emitter, name: str):
-            self._emitter = emitter
-            self._name = name
-
-        def __enter__(self):
-            self._emitter.begin_function(self._name)
-
-        def __exit__(self, _type, value, traceback):
-            self._emitter.end_function()
-
-    def __init__(self, output: TextIO):
+    def __init__(self, output):
         self._output = output
-        self._depth = 0
+        self._depth = 1
         self._step = 4
-
-    def function(self, name: str):
-        return AsmEmitter.FunctionEmitter(self, name)
-
-    def begin_function(self, name: str):
-        self.label(name)
-        self._depth += 1
-        self.push_stack("%rbp")
-        self.instruction("mov", "%rsp", "%rbp")
-
-    def end_function(self):
-        self.instruction("mov", "%rbp", "%rsp")
-        self.pop_stack("%rbp")
-        self.instruction("ret")
-        self._depth -= 1
 
     def instruction(self, instruction: str, *args):
         self._write(f"{instruction} {', '.join([str(s) for s in args])}")
@@ -86,15 +60,18 @@ class AsmGenerator:
         self.emit_program_asm(program_node)
 
     def emit_program_asm(self, program_node: ast.ProgramNode):
-        self.emitter._depth += 1
         self.emitter.instruction(".global", "main")
-        self.emitter._depth -= 1
         for func in program_node.functions:
             self.emit_function_asm(func)
 
     def emit_function_asm(self, function_node: ast.FunDefNode):
-        with self.emitter.function(function_node.name):
-            self.__process_block(function_node.body)
+        self.emitter.label(function_node.name)
+        self.emitter.push_stack("%rbp")
+        self.emitter.instruction("mov", "%rsp", "%rbp")
+        self.__process_block(function_node.body)
+        self.emitter.instruction("mov", "%rbp", "%rsp")
+        self.emitter.pop_stack("%rbp")
+        self.emitter.instruction("ret")
 
     def emit_statement_asm(self, stmt_node: ast.StmtNode):
         if isinstance(stmt_node, ast.ReturnStmtNode):

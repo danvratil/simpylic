@@ -36,7 +36,7 @@ def main():
         result = program.wait()
         if result != int(test['return-code']) % 256:
             raise RuntimeError(f'The utility finished with return code {result} does not match '
-                               'the expected result {test["return-code"]}')
+                               f'the expected result {test["return-code"]}')
 
         log('OK.\n')
 
