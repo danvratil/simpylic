@@ -261,6 +261,9 @@ class AsmGenerator:
         self.__emit_expression_stmt(stmt_node.false_expr)
         self.emitter.label(post_conditional_lbl)
 
+    def __emit_function_call(self, stmt_node: ast.FunCallNode):
+        self.emitter.instruction("call", stmt_node.name)
+
     def __emit_expression_stmt(self, stmt_node: ast.ExprNode):
         if isinstance(stmt_node, ast.ConstantNode):
             self.__emit_constant_value(stmt_node)
@@ -274,5 +277,7 @@ class AsmGenerator:
             self.__emit_logic_operation(stmt_node)
         elif isinstance(stmt_node, ast.TernaryOperatorNode):
             self.__emit_ternary_operation(stmt_node)
+        elif isinstance(stmt_node, ast.FunCallNode):
+            self.__emit_function_call(stmt_node)
         else:
             raise AsmGeneratorError(f"Invalid expression {stmt_node} in statement")

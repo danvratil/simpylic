@@ -1,0 +1,7 @@
+def get_a():
+    return 10
+
+def get_b():
+    return 32
+
+return get_a() + get_b()

@@ -118,5 +118,13 @@
     {
         "test": "while-loop-2",
         "return-code": 55
+    },
+    {
+        "test": "functions-1",
+        "return-code": 10
+    },
+    {
+        "test": "functions-2",
+        "return-code": 42
     }
 ]
